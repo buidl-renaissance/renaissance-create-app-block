@@ -1,6 +1,8 @@
 import { createGlobalStyle } from 'styled-components';
 
 export const GlobalStyle = createGlobalStyle`
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Crimson+Pro:wght@400;500;600&display=swap');
+
   * {
     box-sizing: border-box;
     margin: 0;
@@ -9,16 +11,28 @@ export const GlobalStyle = createGlobalStyle`
 
   html,
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
-      Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    font-family: 'Crimson Pro', Georgia, 'Times New Roman', serif;
     background-color: ${props => props.theme.background};
     color: ${props => props.theme.text};
-    transition: all 0.2s ease;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    line-height: 1.6;
+    font-size: 16px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 600;
+    line-height: 1.2;
   }
 
   a {
-    color: inherit;
+    color: ${props => props.theme.accent};
     text-decoration: none;
+    transition: color 0.2s ease;
+    
+    &:hover {
+      color: ${props => props.theme.accentGold};
+    }
   }
 
   button {
@@ -26,10 +40,15 @@ export const GlobalStyle = createGlobalStyle`
     border: none;
     outline: none;
     background: none;
-    font-family: inherit;
+    font-family: 'Crimson Pro', Georgia, serif;
   }
 
   input, textarea {
-    font-family: inherit;
+    font-family: 'Crimson Pro', Georgia, serif;
+  }
+
+  ::selection {
+    background: ${props => props.theme.accent};
+    color: white;
   }
 `;

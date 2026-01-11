@@ -3,7 +3,7 @@ import Splash from "@/components/Splash";
 import { useUser } from "@/contexts/UserContext";
 
 // App configuration - customize these values for your mini app
-const APP_NAME = "App";
+const APP_NAME = "Renaissance City";
 
 export const getServerSideProps = async () => {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://your-app.builddetroit.xyz';
@@ -11,11 +11,11 @@ export const getServerSideProps = async () => {
   return {
     props: {
       metadata: {
-        title: `${APP_NAME} - Renaissance Mini App`,
-        description: `Welcome to ${APP_NAME}`,
+        title: `${APP_NAME} - Detroit's Digital Renaissance`,
+        description: `Welcome to ${APP_NAME} - Building Detroit's future, one block at a time`,
         openGraph: {
-          title: `${APP_NAME} - Renaissance Mini App`,
-          description: `Welcome to ${APP_NAME}`,
+          title: `${APP_NAME} - Detroit's Digital Renaissance`,
+          description: `Welcome to ${APP_NAME} - Building Detroit's future, one block at a time`,
           images: [
             {
               url: "/thumbnail.jpg",
@@ -29,7 +29,7 @@ export const getServerSideProps = async () => {
           {
             name: 'fc:meta',
             content: JSON.stringify({
-              slug: 'renaissance-app',
+              slug: 'renaissance-city',
               title: APP_NAME,
               icon: `${appUrl}/thumbnail.jpg`,
             }),
@@ -40,13 +40,13 @@ export const getServerSideProps = async () => {
               version: '1',
               imageUrl: `${appUrl}/thumbnail.jpg`,
               button: {
-                title: `Open ${APP_NAME}`,
+                title: `Enter ${APP_NAME}`,
                 action: {
                   type: 'launch_frame',
                   name: APP_NAME,
                   url: appUrl,
                   splashImageUrl: `${appUrl}/splash.png`,
-                  splashBackgroundColor: '#ffffff',
+                  splashBackgroundColor: '#FAF7F2',
                 },
               },
             }),

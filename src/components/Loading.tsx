@@ -1,4 +1,4 @@
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 
 export const Loading = ({ text }: { text?: string }) => {
   return (
@@ -9,13 +9,19 @@ export const Loading = ({ text }: { text?: string }) => {
   );
 };
 
+const spin = keyframes`
+  to {
+    transform: rotate(360deg);
+  }
+`;
+
 const LoadingOverlay = styled.div`
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: ${({ theme }) => theme.background}e6;
+  background: ${({ theme }) => theme.background};
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -24,28 +30,33 @@ const LoadingOverlay = styled.div`
 `;
 
 const Spinner = styled.div`
-  border: 4px solid ${({ theme }) => theme.border};
-  width: 60px;
-  height: 60px;
+  width: 56px;
+  height: 56px;
+  border: 3px solid ${({ theme }) => theme.border};
+  border-top-color: ${({ theme }) => theme.accentGold};
   border-radius: 50%;
-  border-left-color: ${({ theme }) => theme.accent};
-  animation: spin 1s linear infinite;
+  animation: ${spin} 1s linear infinite;
   margin-bottom: 1rem;
+  position: relative;
 
-  @keyframes spin {
-    0% {
-      transform: rotate(0deg);
-    }
-    100% {
-      transform: rotate(360deg);
-    }
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 5px;
+    border: 2px solid transparent;
+    border-top-color: ${({ theme }) => theme.accent};
+    border-radius: 50%;
+    animation: ${spin} 0.7s linear infinite reverse;
   }
 `;
 
 const LoadingText = styled.h3`
-  font-family: "Space Grotesk", sans-serif;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-weight: 500;
+  font-size: 1.2rem;
   color: ${({ theme }) => theme.text};
-  margin-top: 1rem;
+  margin-top: 0.5rem;
+  font-style: italic;
 `;
 
 export { LoadingOverlay, Spinner, LoadingText };

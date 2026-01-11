@@ -223,8 +223,8 @@ const DefaultAvatar = styled.div`
 `;
 
 const LoadingSpinner = styled.div`
-  width: 70px;
-  height: 70px;
+  width: 110px;
+  height: 110px;
   border: 3px solid ${({ theme }) => theme.border};
   border-top-color: ${({ theme }) => theme.accentGold};
   border-radius: 50%;
@@ -234,7 +234,7 @@ const LoadingSpinner = styled.div`
   &::after {
     content: '';
     position: absolute;
-    inset: 6px;
+    inset: 8px;
     border: 2px solid transparent;
     border-top-color: ${({ theme }) => theme.accent};
     border-radius: 50%;

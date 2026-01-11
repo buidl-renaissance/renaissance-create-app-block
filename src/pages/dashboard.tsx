@@ -264,7 +264,7 @@ const DashboardPage: React.FC = () => {
         </DashboardHeader>
 
         <ContentSection>
-          <PlaceholderTitle>Block Claimed</PlaceholderTitle>
+          <PlaceholderTitle>App Block Claimed</PlaceholderTitle>
           <Divider />
           <PlaceholderText>
             This block is now part of Renaissance City. What you build here 

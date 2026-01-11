@@ -30,25 +30,25 @@ export default class MyDocument extends Document {
       <Html lang="en">
         <Head>
           <link
-            href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&family=Inter:wght@400;500;600&display=swap"
+            href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Crimson+Pro:wght@400;500;600&display=swap"
             rel="stylesheet"
           />
           <link rel="icon" href="/favicon.ico" />
           
           {/* Farcaster Mini App Identification */}
-          <meta name="application-name" content="Renaissance App" />
-          <meta name="apple-mobile-web-app-title" content="Renaissance App" />
+          <meta name="application-name" content="Renaissance City" />
+          <meta name="apple-mobile-web-app-title" content="Renaissance City" />
           <link rel="manifest" href={`${appUrl}/.well-known/farcaster.json`} />
           
           {/* Open Graph / Social Media Meta Tags */}
           <meta property="og:type" content="website" />
-          <meta property="og:site_name" content="Renaissance App" />
+          <meta property="og:site_name" content="Renaissance City" />
           <meta property="og:image" content={`${appUrl}/thumbnail.jpg`} />
           
           {/* Twitter Card Meta Tags */}
           <meta name="twitter:card" content="summary_large_image" />
-          <meta name="twitter:title" content="Renaissance App" />
-          <meta name="twitter:description" content="A Renaissance mini app" />
+          <meta name="twitter:title" content="Renaissance City" />
+          <meta name="twitter:description" content="Detroit's Digital Renaissance" />
           <meta name="twitter:image" content={`${appUrl}/thumbnail.jpg`} />
         </Head>
         <body>

@@ -13,37 +13,43 @@ declare module 'styled-components' {
     accentGold: string;
     shadow: string;
     overlay: string;
+    glow: string;
+    glowSecondary: string;
   }
 }
 
-// Renaissance City - Light Theme
-// Inspired by Florentine architecture and classical art
+// Neon Cube - Light Theme
+// Clean and modern with purple accents
 export const lightTheme: DefaultTheme = {
-  background: '#FAF7F2',      // Warm parchment
-  backgroundAlt: '#F0EBE3',   // Aged paper
-  text: '#2C1810',            // Rich sepia brown
-  textSecondary: '#6B5344',   // Muted terracotta
-  border: '#D4C8BB',          // Sandstone
+  background: '#F8F7FC',
+  backgroundAlt: '#EFEDF5',
+  text: '#1A1625',
+  textSecondary: '#64607D',
+  border: '#E0DCF0',
   borderRadius: '12px',
   surface: '#FFFFFF',
-  accent: '#9E3B1D',          // Burnt sienna (Renaissance red)
-  accentGold: '#B8860B',      // Classical gold
-  shadow: 'rgba(44, 24, 16, 0.12)',
-  overlay: 'rgba(44, 24, 16, 0.6)',
+  accent: '#8B5CF6',           // Violet
+  accentGold: '#D946EF',       // Magenta/fuchsia
+  shadow: 'rgba(139, 92, 246, 0.15)',
+  overlay: 'rgba(26, 22, 37, 0.6)',
+  glow: 'rgba(139, 92, 246, 0.5)',
+  glowSecondary: 'rgba(217, 70, 239, 0.5)',
 };
 
-// Renaissance City - Dark Theme
-// Inspired by candlelit chambers and rich tapestries
+// Neon Cube - Dark Theme
+// Inspired by the glowing cube logo
 export const darkTheme: DefaultTheme = {
-  background: '#1A1512',      // Deep espresso
-  backgroundAlt: '#2A2320',   // Dark walnut
-  text: '#F5F0E8',            // Warm ivory
-  textSecondary: '#B8A99A',   // Dusty rose
-  border: '#3D342D',          // Dark bronze
+  background: '#08080C',       // Near black with subtle blue
+  backgroundAlt: '#0E0E14',    // Slightly lighter
+  text: '#F4F4F8',             // Bright white
+  textSecondary: '#9896A8',    // Muted lavender
+  border: '#1E1E2A',           // Dark purple-gray
   borderRadius: '12px',
-  surface: '#252019',         // Rich mahogany
-  accent: '#C9593A',          // Terracotta flame
-  accentGold: '#DAA520',      // Golden rod
-  shadow: 'rgba(0, 0, 0, 0.4)',
-  overlay: 'rgba(0, 0, 0, 0.75)',
+  surface: '#12121A',          // Dark surface
+  accent: '#A78BFA',           // Soft violet
+  accentGold: '#E879F9',       // Bright magenta
+  shadow: 'rgba(0, 0, 0, 0.5)',
+  overlay: 'rgba(0, 0, 0, 0.8)',
+  glow: 'rgba(167, 139, 250, 0.4)',
+  glowSecondary: 'rgba(232, 121, 249, 0.4)',
 };

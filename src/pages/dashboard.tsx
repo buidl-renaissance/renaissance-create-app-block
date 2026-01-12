@@ -31,6 +31,15 @@ const scaleIn = keyframes`
   }
 `;
 
+const pulseGlow = keyframes`
+  0%, 100% {
+    filter: drop-shadow(0 0 20px rgba(167, 139, 250, 0.5)) drop-shadow(0 0 40px rgba(232, 121, 249, 0.3));
+  }
+  50% {
+    filter: drop-shadow(0 0 30px rgba(167, 139, 250, 0.7)) drop-shadow(0 0 60px rgba(232, 121, 249, 0.5));
+  }
+`;
+
 const Container = styled.div`
   min-height: 100vh;
   display: flex;
@@ -226,6 +235,26 @@ const BrandMark = styled.div`
   }
 `;
 
+const BlockImageContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 1rem 0 1.5rem;
+  animation: ${scaleIn} 0.6s ease-out 0.1s both;
+`;
+
+const BlockImage = styled.img`
+  width: 180px;
+  height: 180px;
+  object-fit: contain;
+  animation: ${pulseGlow} 3s ease-in-out infinite;
+  
+  @media (max-width: 480px) {
+    width: 140px;
+    height: 140px;
+  }
+`;
+
 const DashboardPage: React.FC = () => {
   const router = useRouter();
   const { user, isLoading: isUserLoading } = useUser();
@@ -301,6 +330,10 @@ const DashboardPage: React.FC = () => {
           </ProfileImageContainer>
           <Greeting>Welcome, {displayName}</Greeting>
         </UserSection>
+
+        <BlockImageContainer>
+          <BlockImage src="/app-block-claim.png" alt="Block Claimed" />
+        </BlockImageContainer>
 
         <ContentSection>
           <BlockTitle>Block Claimed</BlockTitle>

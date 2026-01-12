@@ -18,6 +18,15 @@ const fadeIn = keyframes`
   }
 `;
 
+const glow = keyframes`
+  0%, 100% {
+    box-shadow: 0 0 20px ${({ theme }) => theme.glow || 'rgba(167, 139, 250, 0.4)'};
+  }
+  50% {
+    box-shadow: 0 0 30px ${({ theme }) => theme.glowSecondary || 'rgba(232, 121, 249, 0.4)'};
+  }
+`;
+
 const Container = styled.div`
   min-height: 100vh;
   display: flex;
@@ -39,13 +48,14 @@ const BackButton = styled.button`
   display: flex;
   align-items: center;
   gap: 0.375rem;
-  font-family: 'Crimson Pro', Georgia, serif;
-  font-size: 0.95rem;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
   color: ${({ theme }) => theme.textSecondary};
   background: none;
   border: none;
   cursor: pointer;
-  transition: color 0.2s ease;
+  transition: all 0.2s ease;
 
   &:hover {
     color: ${({ theme }) => theme.accent};
@@ -58,11 +68,12 @@ const BackButton = styled.button`
 `;
 
 const Title = styled.h1`
-  font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: 1.25rem;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 1.1rem;
   font-weight: 600;
   color: ${({ theme }) => theme.text};
   margin: 0;
+  letter-spacing: -0.02em;
 `;
 
 const Spacer = styled.div`
@@ -74,7 +85,7 @@ const Main = styled.main`
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 1.5rem 1rem;
+  padding: 2rem 1rem;
   animation: ${fadeIn} 0.4s ease-out;
 `;
 
@@ -82,17 +93,19 @@ const FormCard = styled.div`
   width: 100%;
   max-width: 400px;
   background: ${({ theme }) => theme.surface};
-  border-radius: ${({ theme }) => theme.borderRadius};
+  border-radius: 16px;
   border: 1px solid ${({ theme }) => theme.border};
-  box-shadow: 0 2px 12px ${({ theme }) => theme.shadow};
+  box-shadow: 
+    0 4px 24px ${({ theme }) => theme.shadow},
+    0 0 0 1px ${({ theme }) => theme.border};
   overflow: hidden;
 `;
 
 const ProfileSection = styled.div`
-  padding: 1.5rem;
+  padding: 2rem 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1.5rem;
 `;
 
 const AvatarWrapper = styled.div`
@@ -104,11 +117,20 @@ const Avatar = styled.div`
   height: 100px;
   border-radius: 50%;
   overflow: hidden;
-  border: 2px solid ${({ theme }) => theme.accentGold};
   background: ${({ theme }) => theme.backgroundAlt};
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 
+    0 0 0 2px ${({ theme }) => theme.accent},
+    0 0 20px ${({ theme }) => theme.glow || 'rgba(167, 139, 250, 0.3)'};
+  transition: box-shadow 0.3s ease;
+
+  &:hover {
+    box-shadow: 
+      0 0 0 2px ${({ theme }) => theme.accentGold},
+      0 0 30px ${({ theme }) => theme.glowSecondary || 'rgba(232, 121, 249, 0.4)'};
+  }
 `;
 
 const AvatarImage = styled.img`
@@ -131,15 +153,15 @@ const DefaultAvatar = styled.div`
   color: white;
   font-size: 2rem;
   font-weight: 600;
-  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 `;
 
 const EditOverlay = styled.button`
   position: absolute;
   bottom: 0;
   right: 0;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: ${({ theme }) => theme.accent};
   border: 2px solid ${({ theme }) => theme.surface};
@@ -149,10 +171,12 @@ const EditOverlay = styled.button`
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: 0 0 12px ${({ theme }) => theme.glow || 'rgba(167, 139, 250, 0.5)'};
 
   &:hover {
     background: ${({ theme }) => theme.accentGold};
     transform: scale(1.1);
+    box-shadow: 0 0 16px ${({ theme }) => theme.glowSecondary || 'rgba(232, 121, 249, 0.6)'};
   }
 
   svg {
@@ -173,38 +197,43 @@ const ProfileInfo = styled.div`
 `;
 
 const Label = styled.label`
-  font-family: 'Crimson Pro', Georgia, serif;
-  font-size: 0.9rem;
-  color: ${({ theme }) => theme.textSecondary};
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 0.8rem;
   font-weight: 500;
+  color: ${({ theme }) => theme.textSecondary};
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 `;
 
 const NameInput = styled.input`
   width: 100%;
-  padding: 0.625rem 0.75rem;
-  font-family: 'Crimson Pro', Georgia, serif;
+  padding: 0.75rem 1rem;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 1rem;
   color: ${({ theme }) => theme.text};
   background: ${({ theme }) => theme.backgroundAlt};
   border: 1px solid ${({ theme }) => theme.border};
-  border-radius: 6px;
+  border-radius: 10px;
   transition: all 0.2s ease;
 
   &:focus {
     outline: none;
     border-color: ${({ theme }) => theme.accent};
-    box-shadow: 0 0 0 2px ${({ theme }) => theme.accent}20;
+    box-shadow: 
+      0 0 0 3px ${({ theme }) => theme.glow || 'rgba(167, 139, 250, 0.2)'},
+      0 0 20px ${({ theme }) => theme.glow || 'rgba(167, 139, 250, 0.15)'};
   }
 
   &::placeholder {
     color: ${({ theme }) => theme.textSecondary};
-    opacity: 0.6;
+    opacity: 0.5;
   }
 `;
 
 const RemoveButton = styled.button`
-  font-family: 'Crimson Pro', Georgia, serif;
-  font-size: 0.8rem;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 500;
   color: ${({ theme }) => theme.textSecondary};
   background: none;
   border: none;
@@ -214,7 +243,7 @@ const RemoveButton = styled.button`
   transition: all 0.2s ease;
 
   &:hover {
-    color: #c53030;
+    color: #f87171;
     opacity: 1;
   }
 `;
@@ -223,7 +252,7 @@ const AvatarSection = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
 `;
 
 const ButtonContainer = styled.div`
@@ -236,11 +265,11 @@ const ButtonContainer = styled.div`
 `;
 
 const Button = styled.button<{ $primary?: boolean }>`
-  padding: 0.5rem 1rem;
-  font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: 0.9rem;
+  padding: 0.625rem 1.25rem;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 0.875rem;
   font-weight: 600;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
 
@@ -250,10 +279,11 @@ const Button = styled.button<{ $primary?: boolean }>`
         background: linear-gradient(135deg, ${theme.accent} 0%, ${theme.accentGold} 100%);
         color: white;
         border: none;
+        box-shadow: 0 0 16px ${theme.glow || 'rgba(167, 139, 250, 0.3)'};
 
         &:hover:not(:disabled) {
           transform: translateY(-1px);
-          box-shadow: 0 2px 8px ${theme.shadow};
+          box-shadow: 0 0 24px ${theme.glowSecondary || 'rgba(232, 121, 249, 0.5)'};
         }
       `
       : `
@@ -268,17 +298,19 @@ const Button = styled.button<{ $primary?: boolean }>`
       `}
 
   &:disabled {
-    opacity: 0.5;
+    opacity: 0.4;
     cursor: not-allowed;
+    box-shadow: none;
   }
 `;
 
 const Message = styled.div<{ $type: 'success' | 'error' }>`
   padding: 0.75rem 1rem;
   margin: 1rem 1.5rem 0;
-  border-radius: 6px;
-  font-family: 'Crimson Pro', Georgia, serif;
-  font-size: 0.9rem;
+  border-radius: 8px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
   animation: ${fadeIn} 0.3s ease-out;
 
   ${({ $type, theme }) =>
@@ -287,11 +319,12 @@ const Message = styled.div<{ $type: 'success' | 'error' }>`
         background: ${theme.accent}15;
         color: ${theme.accent};
         border: 1px solid ${theme.accent}30;
+        box-shadow: 0 0 12px ${theme.glow || 'rgba(167, 139, 250, 0.15)'};
       `
       : `
-        background: #c5303015;
-        color: #c53030;
-        border: 1px solid #c5303030;
+        background: rgba(248, 113, 113, 0.1);
+        color: #f87171;
+        border: 1px solid rgba(248, 113, 113, 0.2);
       `}
 `;
 

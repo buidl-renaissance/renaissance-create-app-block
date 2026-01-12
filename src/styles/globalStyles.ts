@@ -9,18 +9,21 @@ export const GlobalStyle = createGlobalStyle`
 
   html,
   body {
-    font-family: 'Crimson Pro', Georgia, 'Times New Roman', serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     background-color: ${props => props.theme.background};
     color: ${props => props.theme.text};
     transition: background-color 0.3s ease, color 0.3s ease;
-    line-height: 1.6;
+    line-height: 1.5;
     font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     font-weight: 600;
     line-height: 1.2;
+    letter-spacing: -0.02em;
   }
 
   a {
@@ -38,15 +41,34 @@ export const GlobalStyle = createGlobalStyle`
     border: none;
     outline: none;
     background: none;
-    font-family: 'Crimson Pro', Georgia, serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   }
 
   input, textarea {
-    font-family: 'Crimson Pro', Georgia, serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   }
 
   ::selection {
     background: ${props => props.theme.accent};
     color: white;
+  }
+
+  /* Custom scrollbar for dark theme */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: ${props => props.theme.backgroundAlt};
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: ${props => props.theme.border};
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: ${props => props.theme.textSecondary};
   }
 `;

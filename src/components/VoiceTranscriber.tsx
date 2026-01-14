@@ -1,6 +1,5 @@
 import React, { useState, useRef, useCallback } from "react";
 import styled, { keyframes, createGlobalStyle } from "styled-components";
-import { Modal, ModalBody, ModalFooter, ModalButton, TextArea } from "./Modal";
 
 interface VoiceTranscriberProps {
   onTranscriptReady?: (transcript: string) => void;
@@ -192,47 +191,57 @@ const VoiceTranscriber: React.FC<VoiceTranscriberProps> = ({
       )}
 
       {/* Review Modal - only shown after recording completes */}
-      <Modal isOpen={showReviewModal} onClose={handleCloseModal} title="Voice Answer">
-        <ModalBody>
-          {audioUrl && (
-            <AudioSection>
-              <AudioPlayer controls src={audioUrl} />
-              {isTranscribing && (
-                <TranscribingStatus>
-                  <Spinner />
-                  Transcribing your voice...
-                </TranscribingStatus>
+      {showReviewModal && (
+        <ReviewModalOverlay onClick={(e) => e.target === e.currentTarget && handleCloseModal()}>
+          <ReviewModalContent>
+            <ReviewModalHeader>
+              <ReviewModalTitle>Review Your Answer</ReviewModalTitle>
+              <ReviewCloseButton onClick={handleCloseModal}>×</ReviewCloseButton>
+            </ReviewModalHeader>
+            
+            <ReviewModalBody>
+              {audioUrl && (
+                <AudioSection>
+                  <AudioPlayer controls src={audioUrl} />
+                  {isTranscribing && (
+                    <TranscribingStatus>
+                      <Spinner />
+                      Transcribing your voice...
+                    </TranscribingStatus>
+                  )}
+                </AudioSection>
               )}
-            </AudioSection>
-          )}
 
-          {error && <ErrorMessage>{error}</ErrorMessage>}
+              {error && <ErrorMessage>{error}</ErrorMessage>}
 
-          <TranscriptSection>
-            <TranscriptLabel>Transcript</TranscriptLabel>
-            <TextArea
-              value={transcript}
-              onChange={(e) => setTranscript(e.target.value)}
-              rows={4}
-              placeholder={placeholder}
-            />
-            <TranscriptHint>
-              You can edit the transcript before using it
-            </TranscriptHint>
-          </TranscriptSection>
-        </ModalBody>
-        
-        <ModalFooter>
-          <ModalButton onClick={handleReRecord}>Re-record</ModalButton>
-          <ModalButton
-            $variant="primary"
-            onClick={handleUseTranscript}
-            disabled={!transcript.trim() || isTranscribing}
-          >
-            Use This Answer
-          </ModalButton>
-        </ModalFooter>
-      </Modal>
+              <TranscriptSection>
+                <TranscriptLabel>Transcript</TranscriptLabel>
+                <TextArea
+                  value={transcript}
+                  onChange={(e) => setTranscript(e.target.value)}
+                  rows={5}
+                  placeholder={placeholder}
+                />
+                <TranscriptHint>
+                  You can edit the transcript before processing
+                </TranscriptHint>
+              </TranscriptSection>
+            </ReviewModalBody>
+            
+            <ReviewModalFooter>
+              <SecondaryButton onClick={handleReRecord}>
+                🎙️ Re-record
+              </SecondaryButton>
+              <PrimaryButton
+                onClick={handleUseTranscript}
+                disabled={!transcript.trim() || isTranscribing}
+              >
+                {isTranscribing ? 'Transcribing...' : 'Process & Continue →'}
+              </PrimaryButton>
+            </ReviewModalFooter>
+          </ReviewModalContent>
+        </ReviewModalOverlay>
+      )}
     </>
   );
 };
@@ -475,4 +484,149 @@ const ErrorMessage = styled.div`
   font-family: 'Crimson Pro', Georgia, serif;
   font-size: 0.9rem;
   margin-bottom: 1rem;
+`;
+
+// Custom Review Modal - centered on screen
+const ReviewModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 1rem;
+  animation: ${slideIn} 0.2s ease-out;
+`;
+
+const ReviewModalContent = styled.div`
+  background: ${({ theme }) => theme.surface};
+  border-radius: 16px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+`;
+
+const ReviewModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid ${({ theme }) => theme.border};
+  flex-shrink: 0;
+`;
+
+const ReviewModalTitle = styled.h2`
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin: 0;
+  color: ${({ theme }) => theme.text};
+`;
+
+const ReviewCloseButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 1.75rem;
+  cursor: pointer;
+  color: ${({ theme }) => theme.textSecondary};
+  line-height: 1;
+  padding: 0;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: ${({ theme }) => theme.text};
+  }
+`;
+
+const ReviewModalBody = styled.div`
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+`;
+
+const ReviewModalFooter = styled.div`
+  padding: 1rem 1.5rem;
+  border-top: 1px solid ${({ theme }) => theme.border};
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-shrink: 0;
+`;
+
+const SecondaryButton = styled.button`
+  padding: 0.75rem 1.25rem;
+  border-radius: 10px;
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: ${({ theme }) => theme.background};
+  color: ${({ theme }) => theme.textSecondary};
+  border: 1px solid ${({ theme }) => theme.border};
+  
+  &:hover {
+    background: ${({ theme }) => theme.surface};
+    color: ${({ theme }) => theme.text};
+    border-color: ${({ theme }) => theme.text};
+  }
+`;
+
+const PrimaryButton = styled.button`
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: linear-gradient(135deg, ${({ theme }) => theme.accent} 0%, ${({ theme }) => theme.accentGold} 150%);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 16px ${({ theme }) => theme.accent}44;
+  
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px ${({ theme }) => theme.accent}55;
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+`;
+
+const TextArea = styled.textarea`
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid ${({ theme }) => theme.border};
+  border-radius: 10px;
+  background: ${({ theme }) => theme.background};
+  color: ${({ theme }) => theme.text};
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  resize: vertical;
+  min-height: 120px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  
+  &::placeholder {
+    color: ${({ theme }) => theme.textSecondary};
+    font-style: italic;
+  }
+  
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.accent};
+    box-shadow: 0 0 0 3px ${({ theme }) => theme.accent}22;
+  }
 `;

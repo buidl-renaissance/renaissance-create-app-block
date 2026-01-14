@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Head from "next/head";
 import styled, { keyframes } from "styled-components";
 import { useRouter } from "next/router";
@@ -255,10 +255,89 @@ const BlockImage = styled.img`
   }
 `;
 
+const NameInputSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  max-width: 360px;
+  animation: ${fadeIn} 0.5s ease-out 0.2s both;
+`;
+
+const NameLabel = styled.label`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: ${({ theme }) => theme.textSecondary};
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+`;
+
+const NameInput = styled.input`
+  width: 100%;
+  padding: 1rem 1.25rem;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 1.25rem;
+  font-weight: 500;
+  text-align: center;
+  color: ${({ theme }) => theme.text};
+  background: ${({ theme }) => theme.surface};
+  border: 2px solid ${({ theme }) => theme.border};
+  border-radius: 12px;
+  transition: all 0.3s ease;
+
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.accent};
+    box-shadow: 
+      0 0 0 4px ${({ theme }) => theme.glow || 'rgba(167, 139, 250, 0.2)'},
+      0 0 30px ${({ theme }) => theme.glow || 'rgba(167, 139, 250, 0.2)'};
+  }
+
+  &::placeholder {
+    color: ${({ theme }) => theme.textSecondary};
+    opacity: 0.5;
+  }
+`;
+
+const ContinueButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, ${({ theme }) => theme.accent} 0%, ${({ theme }) => theme.accentGold} 150%);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 20px ${({ theme }) => theme.glow || 'rgba(167, 139, 250, 0.3)'};
+  margin-top: 0.5rem;
+  
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 30px ${({ theme }) => theme.glowSecondary || 'rgba(232, 121, 249, 0.4)'};
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+`;
+
 const DashboardPage: React.FC = () => {
   const router = useRouter();
   const { user, isLoading: isUserLoading } = useUser();
-  const [imageError, setImageError] = React.useState(false);
+  const [imageError, setImageError] = useState(false);
+  const [blockName, setBlockName] = useState('');
+  const [isBlockClaimed, setIsBlockClaimed] = useState(false);
 
   // Redirect to auth if not authenticated
   useEffect(() => {
@@ -332,21 +411,54 @@ const DashboardPage: React.FC = () => {
         </UserSection>
 
         <BlockImageContainer>
-          <BlockImage src="/app-block-claim.png" alt="Block Claimed" />
+          <BlockImage src="/app-block.png" alt="Your Block" />
         </BlockImageContainer>
 
         <ContentSection>
-          <BlockTitle>Block Claimed</BlockTitle>
-          <Divider />
-          <BlockText>
-            This block is now part of Renaissance City. What you build here 
-            will connect to others — together, we&apos;re rebuilding Detroit, 
-            one block at a time.
-          </BlockText>
-          
-          <CreateButton href="/get-started">
-            🏗️ Create App Block
-          </CreateButton>
+          {!isBlockClaimed ? (
+            <>
+              <BlockTitle>Name Your Block</BlockTitle>
+              <Divider />
+              <BlockText>
+                Every block in Renaissance City has a name. What will yours be called?
+              </BlockText>
+              
+              <NameInputSection>
+                <NameLabel htmlFor="blockName">Block Name</NameLabel>
+                <NameInput
+                  id="blockName"
+                  type="text"
+                  value={blockName}
+                  onChange={(e) => setBlockName(e.target.value)}
+                  placeholder="Enter block name..."
+                  maxLength={40}
+                  autoFocus
+                />
+                <ContinueButton 
+                  disabled={!blockName.trim()}
+                  onClick={() => {
+                    setIsBlockClaimed(true);
+                  }}
+                >
+                  Continue →
+                </ContinueButton>
+              </NameInputSection>
+            </>
+          ) : (
+            <>
+              <BlockTitle>{blockName}</BlockTitle>
+              <Divider />
+              <BlockText>
+                This block is now part of Renaissance City. What you build here 
+                will connect to others — together, we&apos;re rebuilding Detroit, 
+                one block at a time.
+              </BlockText>
+              
+              <CreateButton href="/get-started">
+                🏗️ Create App Block
+              </CreateButton>
+            </>
+          )}
 
           <SecondaryActions>
             <SecondaryLink href="/account">

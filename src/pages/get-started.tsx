@@ -143,24 +143,6 @@ const GetStartedPage: React.FC = () => {
     }
   }, [isUserLoading, user, router]);
 
-  // Signal to Farcaster that the app is ready
-  useEffect(() => {
-    const callReady = async () => {
-      if (typeof window === 'undefined') return;
-      
-      try {
-        const { sdk } = await import("@farcaster/miniapp-sdk");
-        
-        if (sdk && sdk.actions && typeof sdk.actions.ready === 'function') {
-          await sdk.actions.ready();
-        }
-      } catch (error) {
-        console.error('Error calling sdk.actions.ready():', error);
-      }
-    };
-
-    callReady();
-  }, []);
 
   if (isUserLoading) {
     return <Loading text="Loading..." />;

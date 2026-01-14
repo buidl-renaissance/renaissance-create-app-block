@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { User } from '@/db/user';
 import { clearStoredWallet } from '@/lib/embeddedWallet';
 
@@ -11,81 +11,113 @@ interface UserContextType {
   refreshUser: () => Promise<void>;
 }
 
-interface SDKUser {
-  fid: number | string;
-  username?: string;
-  displayName?: string;
-  display_name?: string;
-  pfpUrl?: string;
-  pfp_url?: string;
-  renaissanceUserId?: number | string;
-}
-
-// Helper to check if a user is valid (has Farcaster fid OR Renaissance account OR username)
-const isValidUser = (user: SDKUser | null | undefined): boolean => {
-  if (!user) return false;
-  const fid = typeof user.fid === 'string' ? parseInt(user.fid, 10) : user.fid;
-  // Valid if:
-  // - Has any non-zero fid (positive for Farcaster, negative for Renaissance-only)
-  // - Has renaissanceUserId (Renaissance backend user ID)
-  // - Has a username
-  return fid !== 0 || !!user.renaissanceUserId || !!user.username;
-};
-
-// Helper to try getting user from all possible SDK sources
-const tryGetSDKUser = async (): Promise<SDKUser | null> => {
-  if (typeof window === 'undefined') return null;
-  
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const win = window as any;
-  
-  // Try window.farcaster.context
-  if (win.farcaster?.context) {
-    try {
-      const context = await Promise.resolve(win.farcaster.context);
-      if (context?.user && isValidUser(context.user)) {
-        console.log('🎯 Found user via window.farcaster.context');
-        return context.user;
-      }
-    } catch (e) {
-      console.log('⚠️ Error accessing farcaster.context:', e);
-    }
-  }
-  
-  // Try __renaissanceAuthContext
-  if (win.__renaissanceAuthContext?.user) {
-    const user = win.__renaissanceAuthContext.user;
-    if (isValidUser(user)) {
-      console.log('🎯 Found user via __renaissanceAuthContext');
-      return user;
-    }
-  }
-  
-  // Try getRenaissanceAuth()
-  if (typeof win.getRenaissanceAuth === 'function') {
-    try {
-      const context = win.getRenaissanceAuth();
-      if (context?.user && isValidUser(context.user)) {
-        console.log('🎯 Found user via getRenaissanceAuth()');
-        return context.user;
-      }
-    } catch (e) {
-      console.log('⚠️ Error calling getRenaissanceAuth:', e);
-    }
-  }
-  
-  // Try __FARCASTER_USER__
-  if (win.__FARCASTER_USER__ && isValidUser(win.__FARCASTER_USER__)) {
-    console.log('🎯 Found user via __FARCASTER_USER__');
-    return win.__FARCASTER_USER__;
-  }
-  
-  return null;
-};
-
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 const USER_STORAGE_KEY = 'renaissance_app_user';
+
+// Type for Renaissance app injected context
+interface RenaissanceContext {
+  isAuthenticated?: boolean;
+  renaissanceUserId?: number;
+  fid?: number; // Legacy support
+  user?: {
+    username?: string;
+    displayName?: string;
+    pfpUrl?: string;
+    publicAddress?: string;
+    renaissanceUserId?: number;
+    fid?: number;
+  };
+}
+
+// Extend Window interface for injected context
+declare global {
+  interface Window {
+    RenaissanceContext?: RenaissanceContext;
+    renaissanceContext?: RenaissanceContext;
+    __RENAISSANCE_CONTEXT__?: RenaissanceContext;
+    ReactNativeWebView?: {
+      postMessage: (message: string) => void;
+    };
+    // Function that native app can call to set context
+    setRenaissanceContext?: (ctx: RenaissanceContext) => void;
+  }
+}
+
+// Global callback holder for context injection
+let contextCallback: ((ctx: RenaissanceContext) => void) | null = null;
+
+// Set up global function for native app to call
+if (typeof window !== 'undefined') {
+  window.setRenaissanceContext = (ctx: RenaissanceContext) => {
+    console.log('📱 Context set via setRenaissanceContext:', ctx);
+    window.RenaissanceContext = ctx;
+    if (contextCallback) {
+      contextCallback(ctx);
+    }
+  };
+}
+
+// Extend Window interface for injected context from Renaissance native app
+declare global {
+  interface Window {
+    __renaissanceAuthContext?: RenaissanceContext;
+  }
+}
+
+// Helper to get Renaissance context from various sources
+const getRenaissanceContext = (): RenaissanceContext | null => {
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    // Debug: log all potential context locations
+    console.log('🔍 Checking for Renaissance context...', {
+      RenaissanceContext: typeof window.RenaissanceContext,
+      renaissanceContext: typeof window.renaissanceContext,
+      __RENAISSANCE_CONTEXT__: typeof window.__RENAISSANCE_CONTEXT__,
+      __renaissanceAuthContext: typeof window.__renaissanceAuthContext,
+    });
+    
+    // Check various possible injected context locations
+    // Priority: __renaissanceAuthContext (set by MiniAppScreen) > others
+    const ctx = window.__renaissanceAuthContext ||
+                window.RenaissanceContext || 
+                window.renaissanceContext || 
+                window.__RENAISSANCE_CONTEXT__;
+    
+    if (ctx) {
+      console.log('📱 Found injected context:', JSON.stringify(ctx));
+      const userId = ctx.renaissanceUserId || ctx.user?.renaissanceUserId;
+      if (userId) {
+        // Don't require isAuthenticated - just having a userId is enough
+        return { ...ctx, isAuthenticated: true, renaissanceUserId: userId };
+      }
+    }
+    
+    // Check URL parameters as fallback
+    const urlParams = new URLSearchParams(window.location.search);
+    const renaissanceUserId = urlParams.get('renaissanceUserId');
+    if (renaissanceUserId) {
+      console.log('📱 Found context in URL params:', renaissanceUserId);
+      return {
+        isAuthenticated: true,
+        renaissanceUserId: parseInt(renaissanceUserId, 10),
+        user: {
+          username: urlParams.get('username') || undefined,
+          displayName: urlParams.get('displayName') || undefined,
+          pfpUrl: urlParams.get('pfpUrl') || undefined,
+          publicAddress: urlParams.get('publicAddress') || undefined,
+        },
+      };
+    }
+    
+    console.log('📱 No Renaissance context found');
+    return null;
+  } catch (err) {
+    console.error('Error getting Renaissance context:', err);
+    return null;
+  }
+};
 
 // Helper to get user from localStorage
 const getStoredUser = (): User | null => {
@@ -116,6 +148,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(() => getStoredUser());
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const authAttemptedRef = useRef(false);
 
   // Sync user state to localStorage whenever it changes
   useEffect(() => {
@@ -128,7 +161,8 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     storeUser(null);
     clearStoredWallet();
-    // Clear session cookie by making a request to signout endpoint or setting expired cookie
+    authAttemptedRef.current = false;
+    // Clear session cookie by setting expired cookie
     document.cookie = 'user_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT';
   }, []);
 
@@ -149,45 +183,45 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // Function to authenticate user from SDK context
-  const authenticateFromSDK = async (sdkUser: SDKUser) => {
-    try {
-      console.log('🔐 Authenticating with SDK user:', sdkUser);
-      
-      const normalizedData = {
-        fid: String(sdkUser.fid),
-        username: sdkUser.username,
-        displayName: sdkUser.displayName || sdkUser.display_name,
-        pfpUrl: sdkUser.pfpUrl || sdkUser.pfp_url,
-      };
-      
-      const authResponse = await fetch('/api/auth/miniapp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(normalizedData),
-      });
-      
-      if (authResponse.ok) {
-        const authData = await authResponse.json();
-        if (authData.user) {
-          console.log('✅ User authenticated successfully:', authData.user);
-          setUser(authData.user);
-          setError(null);
-          return true;
-        }
-      } else {
-        console.error('❌ Failed to authenticate with SDK user:', authResponse.status);
-      }
-    } catch (err) {
-      console.error('❌ Error authenticating from SDK:', err);
+  // Authenticate from Renaissance context
+  const authenticateFromContext = useCallback(async (ctx: RenaissanceContext): Promise<User | null> => {
+    const renaissanceUserId = ctx.renaissanceUserId || ctx.user?.renaissanceUserId;
+    if (!renaissanceUserId) {
+      console.warn('⚠️ No renaissanceUserId in context');
+      return null;
     }
-    return false;
-  };
+
+    try {
+      console.log('🔐 Authenticating from Renaissance context:', renaissanceUserId);
+      
+      const response = await fetch('/api/auth/context', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          renaissanceUserId,
+          user: ctx.user,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ Context auth failed:', response.status, errorData);
+        return null;
+      }
+
+      const data = await response.json();
+      if (data.success && data.user) {
+        console.log('✅ Authenticated from context:', data.user);
+        return data.user;
+      }
+      return null;
+    } catch (err) {
+      console.error('❌ Error authenticating from context:', err);
+      return null;
+    }
+  }, []);
 
   useEffect(() => {
-    let pollInterval: NodeJS.Timeout | null = null;
     let mounted = true;
     
     const fetchUser = async () => {
@@ -195,290 +229,226 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(true);
         setError(null);
         
-        // Quick check using our helper first
-        const quickUser = await tryGetSDKUser();
-        if (quickUser && mounted) {
-          console.log('🚀 Quick user detection succeeded:', quickUser);
-          const authenticated = await authenticateFromSDK(quickUser);
-          if (authenticated) {
+        console.log('🔍 Starting user fetch...');
+        
+        // Check if we already have a stored user
+        const storedUser = getStoredUser();
+        if (storedUser && mounted) {
+          console.log('✅ Found stored user:', storedUser.id);
+          setUser(storedUser);
+        }
+        
+        // First, check for Renaissance context injection
+        const renaissanceCtx = getRenaissanceContext();
+        if (renaissanceCtx && !authAttemptedRef.current) {
+          const userId = renaissanceCtx.renaissanceUserId || renaissanceCtx.user?.renaissanceUserId;
+          console.log('📱 Renaissance context detected:', userId);
+          authAttemptedRef.current = true;
+          
+          const contextUser = await authenticateFromContext(renaissanceCtx);
+          if (contextUser && mounted) {
+            console.log('✅ User set from context');
+            setUser(contextUser);
             setIsLoading(false);
             return;
           }
         }
         
-        // Start polling for SDK context (context may load after page)
-        let pollAttempts = 0;
-        const maxPollAttempts = 20; // Poll for up to 10 seconds (500ms * 20)
+        // Verify session with server
+        console.log('📡 Verifying session with API...');
+        const response = await fetch('/api/user/me');
         
-        pollInterval = setInterval(async () => {
-          pollAttempts++;
-          console.log(`🔄 Polling for SDK user (attempt ${pollAttempts}/${maxPollAttempts})...`);
+        if (response.ok) {
+          const data = await response.json();
           
-          const polledUser = await tryGetSDKUser();
-          if (polledUser && mounted) {
-            console.log('✅ Polling found user:', polledUser);
-            if (pollInterval) clearInterval(pollInterval);
-            const authenticated = await authenticateFromSDK(polledUser);
-            if (authenticated) {
-              setIsLoading(false);
-            }
+          if (data.user && mounted) {
+            console.log('✅ User found from API:', data.user.id);
+            setUser(data.user);
+            setIsLoading(false);
             return;
           }
-          
-          if (pollAttempts >= maxPollAttempts) {
-            console.log('⏱️ Polling timed out, no user found');
-            if (pollInterval) clearInterval(pollInterval);
+        }
+        
+        // No session found - clear stale cookie
+        console.log('⚠️ No valid session, clearing stale cookie');
+        document.cookie = 'user_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        
+        // Try context again - ALWAYS try if we have context and no user
+        const retryCtx = getRenaissanceContext();
+        if (retryCtx && mounted) {
+          console.log('📱 Retrying context auth after session check failed');
+          const contextUser = await authenticateFromContext(retryCtx);
+          if (contextUser && mounted) {
+            setUser(contextUser);
             setIsLoading(false);
-          }
-        }, 500);
-        
-        if (typeof window !== 'undefined') {
-          try {
-            // Method 1: Use the imported SDK from @farcaster/miniapp-sdk
-            try {
-              const sdkModule = await import('@farcaster/miniapp-sdk');
-              const sdk = sdkModule.sdk;
-              
-              if (sdk && sdk.context) {
-                try {
-                  let context: unknown;
-                  if (typeof sdk.context.then === 'function') {
-                    context = await sdk.context;
-                  } else {
-                    context = sdk.context;
-                  }
-                  
-                  if (context && typeof context === 'object' && 'user' in context) {
-                    const contextWithUser = context as { user?: SDKUser | Record<string, unknown> };
-                    if (contextWithUser.user) {
-                      const rawUser = contextWithUser.user as Record<string, unknown>;
-                      const normalizedUser: SDKUser = {
-                        fid: rawUser.fid as number | string,
-                        username: rawUser.username as string | undefined,
-                        displayName: (rawUser.displayName || rawUser.display_name) as string | undefined,
-                        pfpUrl: (rawUser.pfpUrl || rawUser.pfp_url) as string | undefined,
-                        renaissanceUserId: rawUser.renaissanceUserId as number | string | undefined,
-                      };
-                      
-                      if (isValidUser(normalizedUser)) {
-                        console.log('✅ Found user in SDK context:', normalizedUser);
-                        const authenticated = await authenticateFromSDK(normalizedUser);
-                        if (authenticated) {
-                          setIsLoading(false);
-                          return;
-                        }
-                      }
-                    }
-                  }
-                } catch (e) {
-                  console.log('⚠️ Error accessing SDK context:', e);
-                }
-              }
-            } catch (importError) {
-              console.log('⚠️ Could not import SDK:', importError);
-            }
-            
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const win = window as any;
-            
-            // Log all possible SDK locations for debugging
-            console.log('🔍 Checking for SDK on window:', {
-              hasFarcaster: !!win.farcaster,
-              hasRenaissanceAuthContext: !!win.__renaissanceAuthContext,
-              hasGetRenaissanceAuth: typeof win.getRenaissanceAuth === 'function',
-              hasFarcasterSDK: !!win.FarcasterSDK,
-              hasSDK: !!win.sdk,
-              hasEarlySDK: !!win.__FARCASTER_SDK__,
-              hasEarlyUser: !!win.__FARCASTER_USER__,
-            });
-            
-            // Check for SDK stored by early detection script
-            if (win.__FARCASTER_USER__) {
-              console.log('✅ Found user from early detection:', win.__FARCASTER_USER__);
-              const authenticated = await authenticateFromSDK(win.__FARCASTER_USER__);
-              if (authenticated) {
-                setIsLoading(false);
-                return;
-              }
-            }
-            
-            // Listen for custom event from early detection
-            const userEventHandler = (event: Event) => {
-              const customEvent = event as CustomEvent<SDKUser>;
-              console.log('📨 Received farcaster:user event:', customEvent.detail);
-              if (customEvent.detail) {
-                authenticateFromSDK(customEvent.detail);
-              }
-            };
-            window.addEventListener('farcaster:user', userEventHandler);
-            
-            // Method 2: Use RPC - window.farcaster?.context
-            if (win.farcaster && win.farcaster.context) {
-              try {
-                console.log('🔍 Trying window.farcaster.context (RPC method)...');
-                const context = await win.farcaster.context;
-                if (context && context.user && isValidUser(context.user)) {
-                  console.log('✅ User found via window.farcaster.context:', context.user);
-                  const authenticated = await authenticateFromSDK(context.user);
-                  if (authenticated) {
-                    setIsLoading(false);
-                    return;
-                  }
-                }
-              } catch (e) {
-                console.log('⚠️ Error accessing window.farcaster.context:', e);
-              }
-            }
-            
-            // Method 3: Check window.__renaissanceAuthContext
-            if (win.__renaissanceAuthContext) {
-              try {
-                console.log('🔍 Trying window.__renaissanceAuthContext...');
-                const context = win.__renaissanceAuthContext;
-                if (context && context.user && isValidUser(context.user)) {
-                  console.log('✅ User found via __renaissanceAuthContext:', context.user);
-                  const authenticated = await authenticateFromSDK(context.user);
-                  if (authenticated) {
-                    setIsLoading(false);
-                    return;
-                  }
-                }
-              } catch (e) {
-                console.log('⚠️ Error accessing __renaissanceAuthContext:', e);
-              }
-            }
-            
-            // Method 4: Check window.getRenaissanceAuth() function
-            if (typeof win.getRenaissanceAuth === 'function') {
-              try {
-                console.log('🔍 Trying window.getRenaissanceAuth()...');
-                const context = win.getRenaissanceAuth();
-                if (context && context.user && isValidUser(context.user)) {
-                  console.log('✅ User found via getRenaissanceAuth():', context.user);
-                  const authenticated = await authenticateFromSDK(context.user);
-                  if (authenticated) {
-                    setIsLoading(false);
-                    return;
-                  }
-                }
-              } catch (e) {
-                console.log('⚠️ Error calling getRenaissanceAuth():', e);
-              }
-            }
-            
-            // Listen for farcaster:context:ready event
-            const contextReadyHandler = ((event: CustomEvent) => {
-              console.log('📨 Received farcaster:context:ready event:', event.detail);
-              if (event.detail && event.detail.user && isValidUser(event.detail.user)) {
-                authenticateFromSDK(event.detail.user);
-              }
-            }) as EventListener;
-            window.addEventListener('farcaster:context:ready', contextReadyHandler);
-            
-            // Also listen for postMessage from iOS app
-            const messageHandler = (event: MessageEvent) => {
-              try {
-                const messageData = typeof event.data === 'string' 
-                  ? JSON.parse(event.data) 
-                  : event.data;
-                
-                if (messageData) {
-                  if (messageData.type === 'farcaster' && messageData.user) {
-                    authenticateFromSDK(messageData.user);
-                    return;
-                  }
-                  if (messageData.user && messageData.user.fid) {
-                    authenticateFromSDK(messageData.user);
-                    return;
-                  }
-                  if (messageData.fid && !messageData.type) {
-                    authenticateFromSDK(messageData);
-                    return;
-                  }
-                }
-              } catch {
-                // Not JSON or not user data
-              }
-            };
-            window.addEventListener('message', messageHandler);
-            
-          } catch (sdkError) {
-            console.error('❌ Error checking SDK context:', sdkError);
+            return;
           }
         }
         
-        // Wait for SDK to be injected
-        console.log('⏳ Waiting for SDK to be available...');
-        for (let i = 0; i < 5; i++) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const win = window as any;
-          const sdk = win.__FARCASTER_SDK__ || win.farcaster || win.FarcasterSDK || win.sdk;
-          
-          if (sdk && sdk.context && sdk.context.user) {
-            console.log(`✅ SDK context found on attempt ${i + 1}:`, sdk.context.user);
-            const authenticated = await authenticateFromSDK(sdk.context.user);
-            if (authenticated) {
-              setIsLoading(false);
-              return;
-            }
+        // No user found
+        if (mounted) {
+          console.log('ℹ️ No authenticated user found');
+          if (storedUser) {
+            console.log('⚠️ Clearing stale stored user');
+            setUser(null);
+            storeUser(null);
           }
-          
-          if (win.__FARCASTER_USER__) {
-            console.log(`✅ User from early detection found on attempt ${i + 1}:`, win.__FARCASTER_USER__);
-            const authenticated = await authenticateFromSDK(win.__FARCASTER_USER__);
-            if (authenticated) {
-              setIsLoading(false);
-              return;
-            }
-          }
-        }
-        console.log('⏱️ Finished waiting for SDK');
-        
-        // Fallback: Check for userId in URL query parameters
-        const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get('userId');
-        
-        const apiUrl = userId ? `/api/user/me?userId=${userId}` : '/api/user/me';
-        
-        console.log('📡 Fetching user from API:', apiUrl);
-        const response = await fetch(apiUrl);
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch user');
-        }
-        
-        const data = await response.json();
-        
-        if (data.user) {
-          console.log('✅ User found from API:', data.user);
-          setUser(data.user);
-        } else {
-          console.log('ℹ️ No user in API response');
-        }
-        
-        // Clean up URL if user was found via URL param
-        if (data.user && userId) {
-          const newUrl = window.location.pathname;
-          window.history.replaceState({}, '', newUrl);
         }
       } catch (err) {
         console.error('Error fetching user:', err);
-        setError(err instanceof Error ? err.message : 'Unknown error occurred');
-        setUser(null);
+        if (mounted) {
+          setError(err instanceof Error ? err.message : 'Unknown error occurred');
+          setUser(null);
+        }
       } finally {
-        setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchUser();
     
+    // Listen for context being injected after initial load via message
+    const handleMessage = async (event: MessageEvent) => {
+      try {
+        // Handle postMessage from parent or React Native
+        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+        
+        if (data?.type === 'RENAISSANCE_CONTEXT' && data?.context) {
+          console.log('📱 Received context via postMessage (RENAISSANCE_CONTEXT)');
+          const ctx = data.context as RenaissanceContext;
+          const contextUser = await authenticateFromContext(ctx);
+          if (contextUser) {
+            setUser(contextUser);
+          }
+        }
+        
+        // Handle farcaster:context:ready message from Renaissance native app
+        if (data?.type === 'farcaster:context:ready' && data?.context) {
+          console.log('📱 Received context via postMessage (farcaster:context:ready)');
+          // Extract renaissanceUserId from context.user if not at top level
+          const ctx: RenaissanceContext = {
+            isAuthenticated: data.authenticated || true,
+            renaissanceUserId: data.context?.renaissanceUserId || data.context?.user?.renaissanceUserId,
+            user: data.context?.user,
+          };
+          const contextUser = await authenticateFromContext(ctx);
+          if (contextUser) {
+            setUser(contextUser);
+          }
+        }
+        
+        // Also check for direct context data (some apps send the context directly)
+        if (data?.renaissanceUserId || data?.user?.renaissanceUserId) {
+          console.log('📱 Received direct context via postMessage');
+          const ctx = data as RenaissanceContext;
+          const contextUser = await authenticateFromContext(ctx);
+          if (contextUser) {
+            setUser(contextUser);
+          }
+        }
+      } catch {
+        // Ignore non-JSON messages
+      }
+    };
+    
+    window.addEventListener('message', handleMessage);
+    
+    // Also listen on document for React Native WebView messages
+    const handleDocMessage = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail?.renaissanceUserId) {
+        console.log('📱 Received context via document event');
+        authenticateFromContext(customEvent.detail as RenaissanceContext).then(contextUser => {
+          if (contextUser) setUser(contextUser);
+        });
+      }
+    };
+    document.addEventListener('renaissanceContext', handleDocMessage);
+    
+    // Listen for farcaster:context:ready CustomEvent from Renaissance native app
+    const handleFarcasterContextReady = async (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const detail = customEvent.detail;
+      console.log('📱 Received farcaster:context:ready CustomEvent:', detail);
+      
+      if (detail?.user?.renaissanceUserId || detail?.renaissanceUserId) {
+        const ctx: RenaissanceContext = {
+          isAuthenticated: true,
+          renaissanceUserId: detail.renaissanceUserId || detail.user?.renaissanceUserId,
+          user: detail.user,
+        };
+        const contextUser = await authenticateFromContext(ctx);
+        if (contextUser) {
+          setUser(contextUser);
+        }
+      }
+    };
+    window.addEventListener('farcaster:context:ready', handleFarcasterContextReady);
+    
+    // Listen for farcaster:context:updated CustomEvent (auth state changes)
+    const handleFarcasterContextUpdated = async (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const detail = customEvent.detail;
+      console.log('📱 Received farcaster:context:updated CustomEvent:', detail);
+      
+      const context = detail?.context;
+      if (context?.user?.renaissanceUserId || context?.renaissanceUserId) {
+        const ctx: RenaissanceContext = {
+          isAuthenticated: detail.authenticated || true,
+          renaissanceUserId: context.renaissanceUserId || context.user?.renaissanceUserId,
+          user: context.user,
+        };
+        const contextUser = await authenticateFromContext(ctx);
+        if (contextUser) {
+          setUser(contextUser);
+        }
+      }
+    };
+    window.addEventListener('farcaster:context:updated', handleFarcasterContextUpdated);
+    
+    // Register callback for global setRenaissanceContext function
+    contextCallback = async (ctx: RenaissanceContext) => {
+      console.log('📱 Context callback triggered');
+      const contextUser = await authenticateFromContext(ctx);
+      if (contextUser) {
+        setUser(contextUser);
+      }
+    };
+    
+    // Also check periodically for context injection (some apps inject after DOM load)
+    let checkCount = 0;
+    const maxChecks = 10;
+    const checkInterval = setInterval(async () => {
+      checkCount++;
+      if (checkCount >= maxChecks || authAttemptedRef.current || user) {
+        clearInterval(checkInterval);
+        return;
+      }
+      
+      const ctx = getRenaissanceContext();
+      if (ctx && !authAttemptedRef.current) {
+        console.log('📱 Context found on check', checkCount);
+        authAttemptedRef.current = true;
+        clearInterval(checkInterval);
+        const contextUser = await authenticateFromContext(ctx);
+        if (contextUser) {
+          setUser(contextUser);
+        }
+      }
+    }, 500);
+
     return () => {
       mounted = false;
-      if (pollInterval) clearInterval(pollInterval);
+      window.removeEventListener('message', handleMessage);
+      document.removeEventListener('renaissanceContext', handleDocMessage);
+      window.removeEventListener('farcaster:context:ready', handleFarcasterContextReady);
+      window.removeEventListener('farcaster:context:updated', handleFarcasterContextUpdated);
+      contextCallback = null;
+      clearInterval(checkInterval);
     };
-  }, []);
+  }, [authenticateFromContext, user]);
 
   return (
     <UserContext.Provider value={{ user, isLoading, error, setUser, signOut, refreshUser }}>

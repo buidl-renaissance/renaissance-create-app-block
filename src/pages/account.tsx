@@ -364,7 +364,7 @@ const AccountPage: React.FC = () => {
     return null;
   }
 
-  const initials = (displayName || user.username || `User ${user.fid}`)
+  const initials = (displayName || user.username || user.displayName || 'U')
     .split(' ')
     .map((n) => n[0])
     .join('')

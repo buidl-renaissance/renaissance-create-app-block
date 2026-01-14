@@ -4,10 +4,11 @@ import { getUserById } from '@/db/user';
 type ResponseData = {
   user: {
     id: string;
-    fid: string;
     username: string | null;
     displayName: string | null;
     pfpUrl: string | null;
+    publicAddress: string | null;
+    peopleUserId: number | null;
   } | null;
 };
 
@@ -23,7 +24,14 @@ export default async function handler(
     let user: Awaited<ReturnType<typeof getUserById>> = null;
     let source: string | null = null;
 
-    // Try to get from URL query parameter
+    // Try to get from URL query parameter (including renaissanceUserId)
+    if (!user && req.query.renaissanceUserId && typeof req.query.renaissanceUserId === 'string') {
+      console.log('Attempting to get user from renaissanceUserId param:', req.query.renaissanceUserId);
+      const { getUserByRenaissanceId } = await import('@/db/user');
+      user = await getUserByRenaissanceId(req.query.renaissanceUserId);
+      source = user ? 'renaissance_id_param' : null;
+    }
+
     if (!user && req.query.userId && typeof req.query.userId === 'string') {
       console.log('Attempting to get user from query param:', req.query.userId);
       user = await getUserById(req.query.userId);
@@ -44,7 +52,7 @@ export default async function handler(
     }
 
     if (user) {
-      console.log(`✅ User found via ${source}:`, { id: user.id, fid: user.fid, username: user.username });
+      console.log(`✅ User found via ${source}:`, { id: user.id, username: user.username });
     } else {
       console.log('❌ No user found in /api/user/me');
     }
@@ -56,10 +64,11 @@ export default async function handler(
     return res.status(200).json({
       user: {
         id: user.id,
-        fid: user.fid,
         username: user.username ?? null,
         displayName: user.displayName ?? null,
         pfpUrl: user.pfpUrl ?? null,
+        publicAddress: user.publicAddress ?? null,
+        peopleUserId: user.peopleUserId ?? null,
       },
     });
   } catch (error) {

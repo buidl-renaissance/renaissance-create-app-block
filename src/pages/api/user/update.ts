@@ -13,7 +13,6 @@ export const config = {
 type ResponseData = {
   user?: {
     id: string;
-    fid: string;
     username: string | null;
     displayName: string | null;
     pfpUrl: string | null;
@@ -86,7 +85,6 @@ export default async function handler(
     return res.status(200).json({
       user: {
         id: updatedUser.id,
-        fid: updatedUser.fid,
         username: updatedUser.username ?? null,
         displayName: updatedUser.displayName ?? null,
         pfpUrl: updatedUser.pfpUrl ?? null,

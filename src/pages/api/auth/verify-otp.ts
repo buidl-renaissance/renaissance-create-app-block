@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getOrCreateUserByFid, upsertFarcasterAccount, updateUserPeopleId, updateUserPublicAddress } from '@/db/user';
+import { getOrCreateUserByRenaissanceId, updateUserPeopleId, updateUserPublicAddress } from '@/db/user';
 import { syncUserWithPeopleApi } from '@/lib/peopleApi';
 
 const RENAISSANCE_API_URL = process.env.RENAISSANCE_API_URL || 'https://api.renaissance.city';
@@ -78,16 +78,16 @@ export default async function handler(
     // Extract Renaissance user data
     const renaissanceUser = data.user;
     
-    // Create FID from Renaissance user ID (negative to distinguish from Farcaster FIDs)
-    const fid = renaissanceUser.fid || `-${renaissanceUser.id}`;
+    // Use Renaissance user ID for linking
+    const renaissanceUserId = String(renaissanceUser.id);
     
     const username = renaissanceUser.username || userData?.username;
     const displayName = renaissanceUser.displayName || userData?.name;
     const pfpUrl = renaissanceUser.pfpUrl;
     
     // Get or create local user
-    const user = await getOrCreateUserByFid(String(fid), {
-      fid: String(fid),
+    const user = await getOrCreateUserByRenaissanceId(renaissanceUserId, {
+      renaissanceUserId,
       username,
       displayName,
       pfpUrl,
@@ -107,7 +107,6 @@ export default async function handler(
         username: username || undefined,
         name: displayName || undefined,
         profilePicture: pfpUrl || undefined,
-        farcasterId: String(fid),
       });
 
       if (syncResult) {
@@ -121,20 +120,12 @@ export default async function handler(
       }
     }
 
-    // Update Farcaster account link
-    if (username) {
-      await upsertFarcasterAccount(user.id, {
-        fid: String(fid),
-        username: username || '',
-      });
-    }
-
     // Set session cookie
     res.setHeader('Set-Cookie', `user_session=${user.id}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`);
 
-    console.log('✅ [VERIFY-OTP] Local user authenticated:', {
+    console.log('✅ [VERIFY-OTP] User authenticated:', {
       userId: user.id,
-      fid: user.fid,
+      renaissanceUserId: user.renaissanceUserId,
       username: user.username,
       publicAddress: user.publicAddress,
       peopleUserId: user.peopleUserId,
@@ -144,7 +135,6 @@ export default async function handler(
       success: true,
       user: {
         id: user.id,
-        fid: user.fid,
         username: user.username,
         displayName: user.displayName,
         pfpUrl: user.pfpUrl,

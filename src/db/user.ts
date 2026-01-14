@@ -1,11 +1,11 @@
 import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
 import { db } from './drizzle';
-import { users, farcasterAccounts } from './schema';
+import { users } from './schema';
 
 export interface User {
   id: string;
-  fid: string;
+  renaissanceUserId?: string | null;
   username?: string | null;
   displayName?: string | null;
   pfpUrl?: string | null;
@@ -15,36 +15,18 @@ export interface User {
   updatedAt: Date;
 }
 
-export interface FarcasterAccount {
-  id: string;
-  userId: string;
-  fid: string;
-  username: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface FarcasterUserData {
-  fid: string;
+export interface UserData {
+  renaissanceUserId?: string;
   username?: string;
   displayName?: string;
   pfpUrl?: string;
   publicAddress?: string;
 }
 
-export async function getUserByFid(fid: string): Promise<User | null> {
-  const results = await db
-    .select()
-    .from(users)
-    .where(eq(users.fid, fid))
-    .limit(1);
-  
-  if (results.length === 0) return null;
-  
-  const row = results[0];
+function rowToUser(row: typeof users.$inferSelect): User {
   return {
     id: row.id,
-    fid: row.fid,
+    renaissanceUserId: row.renaissanceUserId,
     username: row.username,
     displayName: row.displayName,
     pfpUrl: row.pfpUrl,
@@ -52,7 +34,18 @@ export async function getUserByFid(fid: string): Promise<User | null> {
     peopleUserId: row.peopleUserId,
     createdAt: row.createdAt || new Date(),
     updatedAt: row.updatedAt || new Date(),
-  } as User;
+  };
+}
+
+export async function getUserByRenaissanceId(renaissanceUserId: string): Promise<User | null> {
+  const results = await db
+    .select()
+    .from(users)
+    .where(eq(users.renaissanceUserId, renaissanceUserId))
+    .limit(1);
+  
+  if (results.length === 0) return null;
+  return rowToUser(results[0]);
 }
 
 export async function getUserById(userId: string): Promise<User | null> {
@@ -63,19 +56,7 @@ export async function getUserById(userId: string): Promise<User | null> {
     .limit(1);
   
   if (results.length === 0) return null;
-  
-  const row = results[0];
-  return {
-    id: row.id,
-    fid: row.fid,
-    username: row.username,
-    displayName: row.displayName,
-    pfpUrl: row.pfpUrl,
-    publicAddress: row.publicAddress,
-    peopleUserId: row.peopleUserId,
-    createdAt: row.createdAt || new Date(),
-    updatedAt: row.updatedAt || new Date(),
-  } as User;
+  return rowToUser(results[0]);
 }
 
 export async function getUserByUsername(username: string): Promise<User | null> {
@@ -86,27 +67,14 @@ export async function getUserByUsername(username: string): Promise<User | null> 
     .limit(1);
   
   if (results.length === 0) return null;
-  
-  const row = results[0];
-  return {
-    id: row.id,
-    fid: row.fid,
-    username: row.username,
-    displayName: row.displayName,
-    pfpUrl: row.pfpUrl,
-    publicAddress: row.publicAddress,
-    peopleUserId: row.peopleUserId,
-    createdAt: row.createdAt || new Date(),
-    updatedAt: row.updatedAt || new Date(),
-  } as User;
+  return rowToUser(results[0]);
 }
 
-
-export async function getOrCreateUserByFid(
-  fid: string,
-  userData?: FarcasterUserData
+export async function getOrCreateUserByRenaissanceId(
+  renaissanceUserId: string,
+  userData?: UserData
 ): Promise<User> {
-  const existing = await getUserByFid(fid);
+  const existing = await getUserByRenaissanceId(renaissanceUserId);
   
   if (existing) {
     // Update user if new data is provided
@@ -131,7 +99,7 @@ export async function getOrCreateUserByFid(
       return {
         ...existing,
         ...updateData,
-      } as User;
+      };
     }
     
     return existing;
@@ -142,7 +110,7 @@ export async function getOrCreateUserByFid(
   const now = new Date();
   const newUser = {
     id,
-    fid,
+    renaissanceUserId,
     username: userData?.username || null,
     displayName: userData?.displayName || null,
     pfpUrl: userData?.pfpUrl || null,
@@ -153,7 +121,7 @@ export async function getOrCreateUserByFid(
   
   await db.insert(users).values(newUser);
   
-  return newUser as User;
+  return rowToUser(newUser as typeof users.$inferSelect);
 }
 
 export async function updateUserPeopleId(userId: string, peopleUserId: number): Promise<void> {
@@ -200,74 +168,5 @@ export async function updateUser(userId: string, data: UpdateUserData): Promise<
   return {
     ...existing,
     ...updateData,
-  } as User;
-}
-
-export async function upsertFarcasterAccount(
-  userId: string,
-  farcasterData: { fid: string; username: string }
-): Promise<FarcasterAccount> {
-  const existing = await db
-    .select()
-    .from(farcasterAccounts)
-    .where(eq(farcasterAccounts.fid, farcasterData.fid))
-    .limit(1);
-  
-  const now = new Date();
-  
-  if (existing.length > 0) {
-    const existingAccount = existing[0];
-    await db
-      .update(farcasterAccounts)
-      .set({
-        userId,
-        username: farcasterData.username,
-        updatedAt: now,
-      })
-      .where(eq(farcasterAccounts.id, existingAccount.id));
-    
-    return {
-      id: existingAccount.id,
-      userId,
-      fid: farcasterData.fid,
-      username: farcasterData.username,
-      createdAt: existingAccount.createdAt || now,
-      updatedAt: now,
-    } as FarcasterAccount;
-  }
-  
-  const id = uuidv4();
-  const record = {
-    id,
-    userId,
-    fid: farcasterData.fid,
-    username: farcasterData.username,
-    createdAt: now,
-    updatedAt: now,
   };
-  
-  await db.insert(farcasterAccounts).values(record);
-  return record as FarcasterAccount;
-}
-
-export async function getFarcasterAccountByFid(
-  fid: string
-): Promise<FarcasterAccount | null> {
-  const results = await db
-    .select()
-    .from(farcasterAccounts)
-    .where(eq(farcasterAccounts.fid, fid))
-    .limit(1);
-  
-  if (results.length === 0) return null;
-  
-  const row = results[0];
-  return {
-    id: row.id,
-    userId: row.userId,
-    fid: row.fid,
-    username: row.username,
-    createdAt: row.createdAt || new Date(),
-    updatedAt: row.updatedAt || new Date(),
-  } as FarcasterAccount;
 }

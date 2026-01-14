@@ -55,24 +55,6 @@ const TemplateCreatePage = ({ template }: { template: Template }) => {
     }
   }, [isUserLoading, user, router]);
 
-  // Signal to Farcaster that the app is ready
-  useEffect(() => {
-    const callReady = async () => {
-      if (typeof window === 'undefined') return;
-      
-      try {
-        const { sdk } = await import("@farcaster/miniapp-sdk");
-        
-        if (sdk && sdk.actions && typeof sdk.actions.ready === 'function') {
-          await sdk.actions.ready();
-        }
-      } catch (err) {
-        console.error('Error calling sdk.actions.ready():', err);
-      }
-    };
-
-    callReady();
-  }, []);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

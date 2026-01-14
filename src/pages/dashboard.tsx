@@ -346,24 +346,6 @@ const DashboardPage: React.FC = () => {
     }
   }, [isUserLoading, user, router]);
 
-  // Signal to Farcaster that the app is ready
-  useEffect(() => {
-    const callReady = async () => {
-      if (typeof window === 'undefined') return;
-      
-      try {
-        const { sdk } = await import("@farcaster/miniapp-sdk");
-        
-        if (sdk && sdk.actions && typeof sdk.actions.ready === 'function') {
-          await sdk.actions.ready();
-        }
-      } catch (error) {
-        console.error('Error calling sdk.actions.ready():', error);
-      }
-    };
-
-    callReady();
-  }, []);
 
   // Show loading while checking auth
   if (isUserLoading) {
@@ -375,7 +357,7 @@ const DashboardPage: React.FC = () => {
     return null;
   }
 
-  const displayName = user.username || user.displayName || `User ${user.fid}`;
+  const displayName = user.username || user.displayName || 'User';
   const initials = displayName
     .split(' ')
     .map((n) => n[0])
@@ -454,13 +436,16 @@ const DashboardPage: React.FC = () => {
                 one block at a time.
               </BlockText>
               
-              <CreateButton href="/get-started">
+              <CreateButton href="/app-blocks/new">
                 🏗️ Create App Block
               </CreateButton>
             </>
           )}
 
           <SecondaryActions>
+            <SecondaryLink href="/app-blocks">
+              My App Blocks
+            </SecondaryLink>
             <SecondaryLink href="/account">
               Account Settings
             </SecondaryLink>

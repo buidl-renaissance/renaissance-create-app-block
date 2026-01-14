@@ -316,7 +316,7 @@ const Splash: React.FC<SplashProps> = ({
     }
   }, [router, redirectDelay, user, isLoading]);
 
-  const displayName = user?.username || user?.displayName || (user?.fid ? `User ${user.fid}` : '');
+  const displayName = user?.username || user?.displayName || (user?.id ? `User` : '');
   const initials = displayName
     ? displayName
         .split(' ')

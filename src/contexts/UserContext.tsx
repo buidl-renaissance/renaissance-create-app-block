@@ -237,11 +237,10 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         console.log('🔍 Starting user fetch...');
         
-        // Check if we already have a stored user
+        // Get stored user (already set as initial state, so no need to setUser again)
         const storedUser = getStoredUser();
-        if (storedUser && mounted) {
+        if (storedUser) {
           console.log('✅ Found stored user:', storedUser.id);
-          setUser(storedUser);
         }
         
         // First, check for Renaissance context injection

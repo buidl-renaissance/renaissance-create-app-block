@@ -155,7 +155,7 @@ export default function ExploreDetailPage() {
   const router = useRouter();
   const { slug } = router.query;
   const { user } = useUser();
-  const { getRegistryEntry, appBlocks, fetchAppBlocks } = useAppBlock();
+  const { getRegistryEntry, appBlocks } = useAppBlock();
   
   const [entry, setEntry] = useState<RegistryEntryWithProvider | null>(null);
   const [loading, setLoading] = useState(true);
@@ -185,11 +185,7 @@ export default function ExploreDetailPage() {
     fetchEntry();
   }, [slug, getRegistryEntry]);
 
-  useEffect(() => {
-    if (user) {
-      fetchAppBlocks();
-    }
-  }, [user, fetchAppBlocks]);
+  // AppBlockContext already fetches appBlocks when user changes
 
   useEffect(() => {
     if (appBlocks.length > 0 && !selectedAppBlock) {

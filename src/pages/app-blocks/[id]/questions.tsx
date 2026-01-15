@@ -620,8 +620,8 @@ const QuestionsPage: React.FC = () => {
           },
         });
         
-        // Redirect to block page
-        router.push(`/app-blocks/${appBlock.id}`);
+        // Redirect to PRD page to review the generated document
+        router.push(`/app-blocks/${appBlock.id}/prd`);
       } else {
         setProcessedAnswers(data.answers || []);
         setSummary(data.summary || null);

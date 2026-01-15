@@ -12,14 +12,22 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Start with dark theme (SSR-safe), then sync from localStorage
   const [theme, setTheme] = useState<Theme>('dark');
 
+  // Sync theme from localStorage on mount (client-side only)
+  // Only update if different to prevent unnecessary re-render
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as Theme;
-    if (savedTheme === 'light' || savedTheme === 'dark') {
-      setTheme(savedTheme);
+    try {
+      const savedTheme = localStorage.getItem('theme') as Theme;
+      if ((savedTheme === 'light' || savedTheme === 'dark') && savedTheme !== theme) {
+        setTheme(savedTheme);
+      }
+    } catch {
+      // localStorage might be unavailable
     }
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';

@@ -380,33 +380,23 @@ const getBlockUrl = (block: AppBlock): string => {
 const DashboardPage: React.FC = () => {
   const router = useRouter();
   const { user, isLoading: isUserLoading } = useUser();
-  const { appBlocks, isLoading: isBlocksLoading, fetchAppBlocks } = useAppBlock();
+  const { appBlocks, isLoading: isBlocksLoading } = useAppBlock();
   const [imageError, setImageError] = useState(false);
 
   // Separate draft and active blocks
   const draftBlocks = appBlocks.filter(block => block.status === 'draft');
   const activeBlocks = appBlocks.filter(block => block.status !== 'draft');
 
-  // Redirect to auth if not authenticated
+  // Redirect to auth if not authenticated, or to get-started if no blocks
   useEffect(() => {
-    if (!isUserLoading && !user) {
+    if (isUserLoading || isBlocksLoading) return;
+    
+    if (!user) {
       router.push('/auth');
-    }
-  }, [isUserLoading, user, router]);
-
-  // Fetch app blocks when user is available
-  useEffect(() => {
-    if (user) {
-      fetchAppBlocks();
-    }
-  }, [user, fetchAppBlocks]);
-
-  // Redirect new users to get-started (only if no blocks at all)
-  useEffect(() => {
-    if (!isBlocksLoading && appBlocks.length === 0 && user) {
+    } else if (appBlocks.length === 0) {
       router.push('/get-started');
     }
-  }, [isBlocksLoading, appBlocks, user, router]);
+  }, [isUserLoading, isBlocksLoading, user, appBlocks.length, router]);
 
   // Show loading while checking auth or fetching blocks
   if (isUserLoading || isBlocksLoading) {

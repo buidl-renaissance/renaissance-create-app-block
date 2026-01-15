@@ -329,34 +329,26 @@ const BlockTypeDesc = styled.span`
 const GetStartedPage: React.FC = () => {
   const router = useRouter();
   const { user, isLoading: isUserLoading } = useUser();
-  const { appBlocks, isLoading: isBlocksLoading, fetchAppBlocks } = useAppBlock();
+  const { appBlocks, isLoading: isBlocksLoading } = useAppBlock();
   
   const [blockName, setBlockName] = useState('');
   const [isBlockClaimed, setIsBlockClaimed] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
-  // Redirect to auth if not authenticated
+  // Redirect to auth if not authenticated, or to dashboard if user has blocks
   useEffect(() => {
-    if (!isUserLoading && !user) {
+    if (isUserLoading || isBlocksLoading) return;
+    
+    if (!user) {
       router.push('/auth');
+    } else {
+      const isCreatingNew = router.query.new === 'true';
+      if (appBlocks.length > 0 && !isCreatingNew) {
+        router.push('/dashboard');
+      }
     }
-  }, [isUserLoading, user, router]);
-
-  // Fetch app blocks to check if user should be here
-  useEffect(() => {
-    if (user) {
-      fetchAppBlocks();
-    }
-  }, [user, fetchAppBlocks]);
-
-  // Redirect to dashboard if user already has blocks (unless explicitly creating new)
-  useEffect(() => {
-    const isCreatingNew = router.query.new === 'true';
-    if (!isBlocksLoading && appBlocks.length > 0 && !isCreatingNew) {
-      router.push('/dashboard');
-    }
-  }, [isBlocksLoading, appBlocks, router]);
+  }, [isUserLoading, isBlocksLoading, user, appBlocks.length, router.query.new, router]);
 
   // Handle name input change
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {

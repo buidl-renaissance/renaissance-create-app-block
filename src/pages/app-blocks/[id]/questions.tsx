@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import Head from 'next/head';
 import styled, { keyframes } from 'styled-components';
 import { useRouter } from 'next/router';
@@ -256,10 +256,32 @@ const RecordSubtitle = styled.p`
   margin: 0 0 1.25rem 0;
 `;
 
+const ProcessingContainer = styled.div`
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: ${({ theme }) => theme.background};
+  z-index: 100;
+`;
+
 const ProcessingSection = styled.div`
   text-align: center;
   padding: 2rem;
   animation: ${fadeIn} 0.4s ease-out;
+`;
+
+const messageRotate = keyframes`
+  0%, 100% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  10%, 90% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 `;
 
 const Spinner = styled.div`
@@ -277,6 +299,8 @@ const ProcessingText = styled.p`
   font-size: 1rem;
   color: ${({ theme }) => theme.textSecondary};
   margin: 0;
+  min-height: 1.5em;
+  animation: ${messageRotate} 3s ease-in-out infinite;
 `;
 
 const ErrorMessage = styled.div`
@@ -463,6 +487,17 @@ const QuestionsPage: React.FC = () => {
   const [followUpQuestions, setFollowUpQuestions] = useState<FollowUpQuestion[]>([]);
   const [followUpAnswers, setFollowUpAnswers] = useState<Record<string, FollowUpAnswer>>({});
   const [error, setError] = useState<string | null>(null);
+  const [processingMessageIndex, setProcessingMessageIndex] = useState(0);
+  
+  const processingMessages = [
+    'Analyzing your responses...',
+    'Identifying key themes and insights...',
+    'Building your product blueprint...',
+    'Crafting personalized recommendations...',
+    'Defining core features...',
+    'Structuring requirements...',
+    'Almost there...',
+  ];
   
   const blockType = appBlock?.blockType || '';
   const config: BlockTypeConfig | undefined = blockTypeQuestions[blockType];
@@ -472,6 +507,22 @@ const QuestionsPage: React.FC = () => {
       router.push('/auth');
     }
   }, [isUserLoading, user, router]);
+
+  // Rotate processing messages
+  useEffect(() => {
+    if (viewState !== 'processing') {
+      setProcessingMessageIndex(0);
+      return;
+    }
+    
+    const interval = setInterval(() => {
+      setProcessingMessageIndex(prev => 
+        prev < processingMessages.length - 1 ? prev + 1 : prev
+      );
+    }, 3000);
+    
+    return () => clearInterval(interval);
+  }, [viewState, processingMessages.length]);
 
   useEffect(() => {
     if (id && typeof id === 'string' && user) {
@@ -787,7 +838,7 @@ const QuestionsPage: React.FC = () => {
         )}
 
         {viewState === 'processing' && (
-          <>
+          <ProcessingContainer>
             <HeroSection>
               <BlockImage src="/app-block.png" alt="Your Block" />
               <Title>{appBlock.name}</Title>
@@ -795,9 +846,11 @@ const QuestionsPage: React.FC = () => {
             </HeroSection>
             <ProcessingSection>
               <Spinner />
-              <ProcessingText>Analyzing and building your blueprint...</ProcessingText>
+              <ProcessingText key={processingMessageIndex}>
+                {processingMessages[processingMessageIndex]}
+              </ProcessingText>
             </ProcessingSection>
-          </>
+          </ProcessingContainer>
         )}
 
         {viewState === 'followup' && (

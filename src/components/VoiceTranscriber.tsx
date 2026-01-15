@@ -237,15 +237,15 @@ const VoiceTranscriber: React.FC<VoiceTranscriberProps> = ({
             </ReviewModalBody>
             
             <ReviewModalFooter>
-              <SecondaryButton onClick={handleReRecord}>
-                🎙️ Re-record
-              </SecondaryButton>
               <PrimaryButton
                 onClick={handleUseTranscript}
                 disabled={!transcript.trim() || isTranscribing}
               >
                 {isTranscribing ? 'Transcribing...' : 'Process & Continue →'}
               </PrimaryButton>
+              <SecondaryButton onClick={handleReRecord}>
+                🎙️ Re-record
+              </SecondaryButton>
             </ReviewModalFooter>
           </ReviewModalContent>
         </ReviewModalOverlay>,
@@ -568,13 +568,14 @@ const ReviewModalFooter = styled.div`
   padding: 1rem 1.25rem;
   border-top: 1px solid ${({ theme }) => theme.border};
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   gap: 0.75rem;
   flex-shrink: 0;
 `;
 
 const SecondaryButton = styled.button`
-  padding: 0.75rem 1.25rem;
+  width: 100%;
+  padding: 0.875rem 1.25rem;
   border-radius: 10px;
   font-family: 'Crimson Pro', Georgia, serif;
   font-size: 1rem;
@@ -593,7 +594,8 @@ const SecondaryButton = styled.button`
 `;
 
 const PrimaryButton = styled.button`
-  padding: 0.75rem 1.5rem;
+  width: 100%;
+  padding: 0.875rem 1.5rem;
   border-radius: 10px;
   font-family: 'Crimson Pro', Georgia, serif;
   font-size: 1rem;

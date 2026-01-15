@@ -7,9 +7,9 @@ const APP_BLOCK_ICON_SIZE = 300;
 
 // DigitalOcean Spaces configuration from environment variables
 const DO_SPACES_ENDPOINT = process.env.DO_SPACES_ENDPOINT;
-const DO_SPACES_ACCESS_KEY_ID = process.env.DO_SPACES_ACCESS_KEY_ID;
-const DO_SPACES_SECRET_ACCESS_KEY = process.env.DO_SPACES_SECRET_ACCESS_KEY;
-const DO_SPACES_BUCKET_NAME = process.env.DO_SPACES_BUCKET_NAME;
+const DO_SPACES_KEY = process.env.DO_SPACES_KEY;
+const DO_SPACES_SECRET = process.env.DO_SPACES_SECRET;
+const DO_SPACES_BUCKET = process.env.DO_SPACES_BUCKET;
 const DO_SPACES_REGION = process.env.DO_SPACES_REGION || "nyc3";
 const DO_SPACES_CDN_URL = process.env.DO_SPACES_CDN_URL; // Optional CDN URL
 
@@ -18,8 +18,8 @@ const s3Client = new S3Client({
   endpoint: DO_SPACES_ENDPOINT,
   region: DO_SPACES_REGION,
   credentials: {
-    accessKeyId: DO_SPACES_ACCESS_KEY_ID || "",
-    secretAccessKey: DO_SPACES_SECRET_ACCESS_KEY || "",
+    accessKeyId: DO_SPACES_KEY || "",
+    secretAccessKey: DO_SPACES_SECRET || "",
   },
   forcePathStyle: false, // DigitalOcean Spaces uses virtual-hosted-style
 });
@@ -42,9 +42,9 @@ export async function uploadProfileImageToDO(
   }
 
   // Validate environment variables
-  if (!DO_SPACES_ENDPOINT || !DO_SPACES_ACCESS_KEY_ID || !DO_SPACES_SECRET_ACCESS_KEY || !DO_SPACES_BUCKET_NAME) {
+  if (!DO_SPACES_ENDPOINT || !DO_SPACES_KEY || !DO_SPACES_SECRET || !DO_SPACES_BUCKET) {
     throw new Error(
-      "DigitalOcean Spaces configuration is missing. Please set DO_SPACES_ENDPOINT, DO_SPACES_ACCESS_KEY_ID, DO_SPACES_SECRET_ACCESS_KEY, and DO_SPACES_BUCKET_NAME environment variables."
+      "DigitalOcean Spaces configuration is missing. Please set DO_SPACES_ENDPOINT, DO_SPACES_KEY, DO_SPACES_SECRET, and DO_SPACES_BUCKET environment variables."
     );
   }
 
@@ -85,7 +85,7 @@ export async function uploadProfileImageToDO(
   // Upload to DigitalOcean Spaces
   try {
     const command = new PutObjectCommand({
-      Bucket: DO_SPACES_BUCKET_NAME,
+      Bucket: DO_SPACES_BUCKET,
       Key: filename,
       Body: processedImage,
       ContentType: "image/png",
@@ -101,7 +101,7 @@ export async function uploadProfileImageToDO(
     } else {
       // Use the Spaces endpoint URL
       const endpointUrl = DO_SPACES_ENDPOINT.replace(/^https?:\/\//, "");
-      return `https://${DO_SPACES_BUCKET_NAME}.${endpointUrl}/${filename}`;
+      return `https://${DO_SPACES_BUCKET}.${endpointUrl}/${filename}`;
     }
   } catch (error) {
     throw new Error(
@@ -128,9 +128,9 @@ export async function uploadAppBlockIcon(
   }
 
   // Validate environment variables
-  if (!DO_SPACES_ENDPOINT || !DO_SPACES_ACCESS_KEY_ID || !DO_SPACES_SECRET_ACCESS_KEY || !DO_SPACES_BUCKET_NAME) {
+  if (!DO_SPACES_ENDPOINT || !DO_SPACES_KEY || !DO_SPACES_SECRET || !DO_SPACES_BUCKET) {
     throw new Error(
-      "DigitalOcean Spaces configuration is missing. Please set DO_SPACES_ENDPOINT, DO_SPACES_ACCESS_KEY_ID, DO_SPACES_SECRET_ACCESS_KEY, and DO_SPACES_BUCKET_NAME environment variables."
+      "DigitalOcean Spaces configuration is missing. Please set DO_SPACES_ENDPOINT, DO_SPACES_KEY, DO_SPACES_SECRET, and DO_SPACES_BUCKET environment variables."
     );
   }
 
@@ -169,7 +169,7 @@ export async function uploadAppBlockIcon(
   // Upload to DigitalOcean Spaces
   try {
     const command = new PutObjectCommand({
-      Bucket: DO_SPACES_BUCKET_NAME,
+      Bucket: DO_SPACES_BUCKET,
       Key: filename,
       Body: processedImage,
       ContentType: "image/png",
@@ -185,7 +185,7 @@ export async function uploadAppBlockIcon(
     } else {
       // Use the Spaces endpoint URL
       const endpointUrl = DO_SPACES_ENDPOINT.replace(/^https?:\/\//, "");
-      return `https://${DO_SPACES_BUCKET_NAME}.${endpointUrl}/${filename}`;
+      return `https://${DO_SPACES_BUCKET}.${endpointUrl}/${filename}`;
     }
   } catch (error) {
     throw new Error(

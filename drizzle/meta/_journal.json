@@ -64,6 +64,13 @@
       "when": 1768481168286,
       "tag": "0008_first_krista_starr",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1768531200000,
+      "tag": "0009_add-app-block-status",
+      "breakpoints": true
     }
   ]
 }

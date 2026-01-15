@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import Head from 'next/head';
 import styled, { keyframes } from 'styled-components';
 import { useRouter } from 'next/router';
@@ -7,7 +7,6 @@ import { useUser } from '@/contexts/UserContext';
 import { useAppBlock, ConnectorWithDetails, RegistryEntry, RegistryEntryWithProvider } from '@/contexts/AppBlockContext';
 import { Loading } from '@/components/Loading';
 import { ConnectorPicker, RecipeSelector, RegistryBrowser } from '@/components/app-blocks';
-import { useBlockDraft, DraftStage, SelectedBlock as DraftSelectedBlock } from '@/hooks/useBlockDraft';
 
 const fadeIn = keyframes`
   from {
@@ -246,18 +245,6 @@ interface SelectedBlock {
   scopes: string[];
 }
 
-// Map wizard step to draft stage
-const wizardStepToDraftStage = (step: WizardStep): DraftStage => {
-  switch (step) {
-    case 'details': return 'details';
-    case 'connectors': return 'connectors';
-    case 'blocks': return 'blocks';
-    case 'recipes': return 'recipes';
-    case 'review': return 'review';
-    default: return 'details';
-  }
-};
-
 const NewAppBlockPage: React.FC = () => {
   const router = useRouter();
   const { user, isLoading: isUserLoading } = useUser();
@@ -274,13 +261,9 @@ const NewAppBlockPage: React.FC = () => {
     registryEntries,
   } = useAppBlock();
   
-  // Use shared draft hook
-  const { draft, isLoaded: isDraftLoaded, updateDraft, clearDraft } = useBlockDraft();
-  
   const [step, setStep] = useState<WizardStep>('details');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [draftInitialized, setDraftInitialized] = useState(false);
   
   // Form state
   const [name, setName] = useState('');
@@ -288,55 +271,6 @@ const NewAppBlockPage: React.FC = () => {
   const [selectedConnectors, setSelectedConnectors] = useState<string[]>([]);
   const [selectedRecipes, setSelectedRecipes] = useState<Record<string, string | 'custom'>>({});
   const [selectedBlocks, setSelectedBlocks] = useState<SelectedBlock[]>([]);
-
-  // Load draft data when available
-  useEffect(() => {
-    if (isDraftLoaded && !draftInitialized && draft) {
-      // Pre-fill from draft
-      if (draft.blockName) setName(draft.blockName);
-      if (draft.description) setDescription(draft.description);
-      if (draft.selectedConnectors.length > 0) setSelectedConnectors(draft.selectedConnectors);
-      if (Object.keys(draft.selectedRecipes).length > 0) setSelectedRecipes(draft.selectedRecipes);
-      
-      // Restore selected blocks (need to fetch full data)
-      // For now just set what we have
-      
-      // Set the current step based on draft stage
-      if (draft.currentStage === 'connectors') setStep('connectors');
-      else if (draft.currentStage === 'blocks') setStep('blocks');
-      else if (draft.currentStage === 'recipes') setStep('recipes');
-      else if (draft.currentStage === 'review') setStep('review');
-      
-      setDraftInitialized(true);
-    }
-  }, [isDraftLoaded, draftInitialized, draft]);
-
-  // Auto-save draft when state changes
-  const saveDraftData = useCallback(() => {
-    if (!name && selectedConnectors.length === 0) return;
-    
-    const draftBlocks: DraftSelectedBlock[] = selectedBlocks.map(b => ({
-      entryId: b.entry.id,
-      displayName: b.entry.displayName,
-      slug: b.entry.slug,
-      scopes: b.scopes,
-    }));
-    
-    updateDraft({
-      currentStage: wizardStepToDraftStage(step),
-      blockName: name,
-      description,
-      selectedConnectors,
-      selectedRecipes,
-      selectedBlocks: draftBlocks,
-    });
-  }, [step, name, description, selectedConnectors, selectedRecipes, selectedBlocks, updateDraft]);
-
-  useEffect(() => {
-    if (draftInitialized) {
-      saveDraftData();
-    }
-  }, [saveDraftData, draftInitialized]);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -455,9 +389,6 @@ const NewAppBlockPage: React.FC = () => {
         );
       }
       
-      // Clear the draft after successful creation
-      clearDraft();
-      
       // Redirect to the new App Block
       router.push(`/app-blocks/${appBlock.id}`);
     } catch (err) {
@@ -466,7 +397,7 @@ const NewAppBlockPage: React.FC = () => {
     }
   };
 
-  if (isUserLoading || connectorsLoading || !isDraftLoaded) {
+  if (isUserLoading || connectorsLoading) {
     return <Loading text="Loading..." />;
   }
 

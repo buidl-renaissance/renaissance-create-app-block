@@ -4,7 +4,7 @@ import styled, { keyframes } from "styled-components";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { useUser } from "@/contexts/UserContext";
-import { useAppBlock } from "@/contexts/AppBlockContext";
+import { useAppBlock, AppBlock } from "@/contexts/AppBlockContext";
 import { Loading } from "@/components/Loading";
 
 // App configuration
@@ -308,6 +308,36 @@ const BlockCardArrow = styled.span`
   }
 `;
 
+const DraftBadge = styled.span`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.2rem 0.5rem;
+  background: ${({ theme }) => theme.accentGold}20;
+  color: ${({ theme }) => theme.accentGold};
+  border-radius: 100px;
+`;
+
+const BlockCardMeta = styled.span`
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-size: 0.8rem;
+  color: ${({ theme }) => theme.textSecondary};
+`;
+
+const SectionLabel = styled.h3`
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: ${({ theme }) => theme.textSecondary};
+  margin: 0 0 0.5rem 0;
+  text-align: left;
+  width: 100%;
+`;
+
 const NewBlockButton = styled(Link)`
   display: flex;
   align-items: center;
@@ -330,11 +360,38 @@ const NewBlockButton = styled(Link)`
   }
 `;
 
+// Map onboarding stage to display text
+const getStageLabel = (stage: string | null): string => {
+  switch (stage) {
+    case 'questions': return 'Answering questions';
+    case 'followup': return 'Follow-up questions';
+    case 'document': return 'Review requirements';
+    case 'connectors': return 'Connecting services';
+    case 'complete': return 'Complete';
+    default: return 'In progress';
+  }
+};
+
+// Get the resume URL for a draft block
+const getResumeUrl = (block: AppBlock): string => {
+  if (block.onboardingStage === 'connectors' || block.onboardingStage === 'complete') {
+    return `/app-blocks/${block.id}`;
+  }
+  if (block.blockType) {
+    return `/onboarding/${block.blockType}?name=${encodeURIComponent(block.name)}&blockId=${block.id}`;
+  }
+  return `/app-blocks/${block.id}`;
+};
+
 const DashboardPage: React.FC = () => {
   const router = useRouter();
   const { user, isLoading: isUserLoading } = useUser();
   const { appBlocks, isLoading: isBlocksLoading, fetchAppBlocks } = useAppBlock();
   const [imageError, setImageError] = useState(false);
+
+  // Separate draft and active blocks
+  const draftBlocks = appBlocks.filter(block => block.status === 'draft');
+  const activeBlocks = appBlocks.filter(block => block.status !== 'draft');
 
   // Redirect to auth if not authenticated
   useEffect(() => {
@@ -350,7 +407,7 @@ const DashboardPage: React.FC = () => {
     }
   }, [user, fetchAppBlocks]);
 
-  // Redirect new users to get-started
+  // Redirect new users to get-started (only if no blocks at all)
   useEffect(() => {
     if (!isBlocksLoading && appBlocks.length === 0 && user) {
       router.push('/get-started');
@@ -425,29 +482,59 @@ const DashboardPage: React.FC = () => {
               </BlockText>
               
           <BlocksListContainer>
-            {appBlocks.slice(0, 5).map((block, index) => (
-              <BlockCard 
-                key={block.id} 
-                href={`/app-blocks/${block.id}`}
-                $index={index}
-              >
-                <BlockCardIcon $iconUrl={block.iconUrl}>
-                  {!block.iconUrl && block.name.charAt(0).toUpperCase()}
-                </BlockCardIcon>
-                <BlockCardInfo>
-                  <BlockCardName>{block.name}</BlockCardName>
-                </BlockCardInfo>
-                <BlockCardArrow>→</BlockCardArrow>
-              </BlockCard>
-            ))}
-            <NewBlockButton href="/app-blocks/new">
+            {/* Draft blocks - in progress */}
+            {draftBlocks.length > 0 && (
+              <>
+                <SectionLabel>In Progress</SectionLabel>
+                {draftBlocks.map((block, index) => (
+                  <BlockCard 
+                    key={block.id} 
+                    href={getResumeUrl(block)}
+                    $index={index}
+                  >
+                    <BlockCardIcon $iconUrl={block.iconUrl}>
+                      {!block.iconUrl && block.name.charAt(0).toUpperCase()}
+                    </BlockCardIcon>
+                    <BlockCardInfo>
+                      <BlockCardName>{block.name}</BlockCardName>
+                      <BlockCardMeta>{getStageLabel(block.onboardingStage)}</BlockCardMeta>
+                    </BlockCardInfo>
+                    <DraftBadge>Resume</DraftBadge>
+                  </BlockCard>
+                ))}
+              </>
+            )}
+            
+            {/* Active blocks */}
+            {activeBlocks.length > 0 && (
+              <>
+                {draftBlocks.length > 0 && <SectionLabel style={{ marginTop: '1rem' }}>Active</SectionLabel>}
+                {activeBlocks.slice(0, 5).map((block, index) => (
+                  <BlockCard 
+                    key={block.id} 
+                    href={`/app-blocks/${block.id}`}
+                    $index={index + draftBlocks.length}
+                  >
+                    <BlockCardIcon $iconUrl={block.iconUrl}>
+                      {!block.iconUrl && block.name.charAt(0).toUpperCase()}
+                    </BlockCardIcon>
+                    <BlockCardInfo>
+                      <BlockCardName>{block.name}</BlockCardName>
+                    </BlockCardInfo>
+                    <BlockCardArrow>→</BlockCardArrow>
+                  </BlockCard>
+                ))}
+              </>
+            )}
+            
+            <NewBlockButton href="/get-started">
               + Create New Block
             </NewBlockButton>
           </BlocksListContainer>
           
-          {appBlocks.length > 5 && (
+          {activeBlocks.length > 5 && (
             <SecondaryLink href="/app-blocks" style={{ marginTop: '1rem' }}>
-              View all {appBlocks.length} blocks →
+              View all {activeBlocks.length} blocks →
             </SecondaryLink>
           )}
         </ContentSection>

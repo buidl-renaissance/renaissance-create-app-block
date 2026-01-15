@@ -26,9 +26,20 @@ export const appBlocks = sqliteTable('app_blocks', {
   serviceAccountId: text('service_account_id'),
   description: text('description'),
   iconUrl: text('icon_url'),
+  // Status and progress tracking
+  status: text('status').notNull().default('draft'), // draft, active, archived
+  blockType: text('block_type'), // creator, community, project, business, game, unsure
+  onboardingStage: text('onboarding_stage').default('questions'), // questions, followup, document, connectors, complete
+  onboardingData: text('onboarding_data'), // JSON: { summary, processedAnswers, followUpQuestions, followUpAnswers, prd }
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
 });
+
+// App Block status type
+export type AppBlockStatus = 'draft' | 'active' | 'archived';
+
+// Onboarding stage type
+export type OnboardingStage = 'questions' | 'followup' | 'document' | 'connectors' | 'complete';
 
 // Connectors - integrations available for App Blocks (Events, Collab, DJQ, etc.)
 export const connectors = sqliteTable('connectors', {

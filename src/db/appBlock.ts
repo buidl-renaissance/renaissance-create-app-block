@@ -1,4 +1,4 @@
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, ne } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { createHash, randomBytes } from 'crypto';
 import { getDb } from './drizzle';
@@ -20,6 +20,8 @@ import {
   AccessToken,
   InstallationStatus,
   AuthType,
+  AppBlockStatus,
+  OnboardingStage,
 } from './schema';
 
 // ============================================
@@ -31,6 +33,10 @@ export async function createAppBlock(data: {
   ownerUserId: string;
   description?: string;
   iconUrl?: string;
+  status?: AppBlockStatus;
+  blockType?: string;
+  onboardingStage?: OnboardingStage;
+  onboardingData?: object;
 }): Promise<AppBlock> {
   const db = getDb();
   const id = uuidv4();
@@ -42,6 +48,10 @@ export async function createAppBlock(data: {
     ownerUserId: data.ownerUserId,
     description: data.description,
     iconUrl: data.iconUrl,
+    status: data.status || 'draft',
+    blockType: data.blockType,
+    onboardingStage: data.onboardingStage || 'questions',
+    onboardingData: data.onboardingData ? JSON.stringify(data.onboardingData) : null,
   });
   
   // Create associated service account
@@ -54,6 +64,147 @@ export async function createAppBlock(data: {
   
   const [result] = await db.select().from(appBlocks).where(eq(appBlocks.id, id));
   return result;
+}
+
+/**
+ * Create a draft app block during onboarding
+ */
+export async function createDraftAppBlock(data: {
+  name: string;
+  ownerUserId: string;
+  blockType: string;
+  onboardingData?: object;
+}): Promise<AppBlock> {
+  return createAppBlock({
+    name: data.name,
+    ownerUserId: data.ownerUserId,
+    blockType: data.blockType,
+    status: 'draft',
+    onboardingStage: 'questions',
+    onboardingData: data.onboardingData,
+  });
+}
+
+/**
+ * Update onboarding progress for a draft block
+ */
+export async function updateOnboardingProgress(
+  id: string,
+  data: {
+    onboardingStage?: OnboardingStage;
+    onboardingData?: object;
+    name?: string;
+    description?: string;
+  }
+): Promise<AppBlock | null> {
+  const db = getDb();
+  
+  const updateData: Record<string, unknown> = {
+    updatedAt: new Date(),
+  };
+  
+  if (data.onboardingStage) {
+    updateData.onboardingStage = data.onboardingStage;
+  }
+  if (data.onboardingData) {
+    updateData.onboardingData = JSON.stringify(data.onboardingData);
+  }
+  if (data.name) {
+    updateData.name = data.name;
+  }
+  if (data.description) {
+    updateData.description = data.description;
+  }
+  
+  await db.update(appBlocks)
+    .set(updateData)
+    .where(eq(appBlocks.id, id));
+  
+  return getAppBlockById(id);
+}
+
+/**
+ * Activate a draft block (mark as complete)
+ */
+export async function activateAppBlock(id: string): Promise<AppBlock | null> {
+  const db = getDb();
+  await db.update(appBlocks)
+    .set({ 
+      status: 'active',
+      onboardingStage: 'complete',
+      updatedAt: new Date(),
+    })
+    .where(eq(appBlocks.id, id));
+  
+  return getAppBlockById(id);
+}
+
+/**
+ * Get user's draft blocks (in progress)
+ */
+export async function getDraftBlocksByUser(userId: string): Promise<AppBlock[]> {
+  const db = getDb();
+  return db.select()
+    .from(appBlocks)
+    .where(and(
+      eq(appBlocks.ownerUserId, userId),
+      eq(appBlocks.status, 'draft')
+    ))
+    .orderBy(desc(appBlocks.updatedAt));
+}
+
+/**
+ * Get user's active blocks
+ */
+export async function getActiveBlocksByUser(userId: string): Promise<AppBlock[]> {
+  const db = getDb();
+  return db.select()
+    .from(appBlocks)
+    .where(and(
+      eq(appBlocks.ownerUserId, userId),
+      eq(appBlocks.status, 'active')
+    ))
+    .orderBy(desc(appBlocks.updatedAt));
+}
+
+/**
+ * Parse onboarding data from JSON string
+ */
+export function parseOnboardingData(data: string | null): {
+  summary?: {
+    name: string;
+    tagline: string;
+    description: string;
+    targetAudience: string;
+    coreFeatures: string[];
+    nextSteps: string[];
+  };
+  processedAnswers?: Array<{
+    question: string;
+    answer: string;
+    keyPoints: string[];
+  }>;
+  followUpQuestions?: Array<{
+    id: string;
+    question: string;
+    context: string;
+    type: 'single' | 'multi' | 'open';
+    options?: string[];
+  }>;
+  followUpAnswers?: Record<string, {
+    questionId: string;
+    question: string;
+    answer: string | string[];
+    skipped: boolean;
+  }>;
+  prd?: object;
+} | null {
+  if (!data) return null;
+  try {
+    return JSON.parse(data);
+  } catch {
+    return null;
+  }
 }
 
 export async function getAppBlockById(id: string): Promise<AppBlock | null> {

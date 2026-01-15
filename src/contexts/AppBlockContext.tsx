@@ -9,6 +9,10 @@ export interface AppBlock {
   serviceAccountId: string | null;
   description: string | null;
   iconUrl: string | null;
+  status: string;
+  blockType: string | null;
+  onboardingStage: string | null;
+  onboardingData: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

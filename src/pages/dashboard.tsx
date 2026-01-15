@@ -435,23 +435,6 @@ const DashboardPage: React.FC = () => {
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </Head>
 
-      <Header>
-        <HeaderUser href="/account" title="Account Settings">
-          <HeaderAvatar>
-            {user.pfpUrl && !imageError ? (
-              <HeaderAvatarImage
-                src={user.pfpUrl}
-                alt={displayName}
-                onError={() => setImageError(true)}
-              />
-            ) : (
-              <HeaderAvatarFallback>{initials}</HeaderAvatarFallback>
-            )}
-          </HeaderAvatar>
-          <HeaderUserName>Welcome, {displayName}</HeaderUserName>
-        </HeaderUser>
-      </Header>
-
       <Main>
         <BlockImageContainer>
           <BlockImage src="/app-block.png" alt="Your Block" />

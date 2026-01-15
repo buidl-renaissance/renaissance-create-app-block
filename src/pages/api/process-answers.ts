@@ -1,9 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
+import { Resend } from 'resend';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+const PRD_NOTIFICATION_EMAIL = 'john@thebarefoot.dev';
 
 interface ProcessedAnswer {
   question: string;
@@ -60,6 +64,147 @@ interface ProcessAnswersResponse {
   followUpQuestions?: FollowUpQuestion[];
   prd?: ProductRequirementsDocument;
   error?: string;
+}
+
+/**
+ * Send PRD notification email
+ */
+async function sendPRDEmail(
+  prd: ProductRequirementsDocument,
+  summary: BlockSummary,
+  blockType: string,
+  blockName: string
+): Promise<boolean> {
+  try {
+    const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 700px; margin: 0 auto; }
+    .container { padding: 20px; }
+    .header { background: linear-gradient(135deg, #a78bfa 0%, #f5d764 150%); padding: 24px; border-radius: 12px 12px 0 0; text-align: center; }
+    .header h1 { color: white; margin: 0; font-size: 24px; }
+    .header p { color: rgba(255,255,255,0.9); margin: 8px 0 0 0; font-style: italic; }
+    .content { background: #f9fafb; padding: 24px; border-radius: 0 0 12px 12px; }
+    .section { margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #e5e7eb; }
+    .section:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+    .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #7c3aed; margin-bottom: 12px; font-weight: 600; }
+    .feature-card { background: white; padding: 12px 16px; border-radius: 8px; margin-bottom: 8px; border-left: 3px solid #a78bfa; }
+    .feature-name { font-weight: 600; color: #1f2937; }
+    .feature-desc { font-size: 14px; color: #6b7280; margin-top: 4px; }
+    .priority { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 100px; margin-left: 8px; text-transform: uppercase; }
+    .priority-must { background: #a78bfa33; color: #7c3aed; }
+    .priority-should { background: #fbbf2433; color: #d97706; }
+    .priority-nice { background: #e5e7eb; color: #6b7280; }
+    .list-item { background: white; padding: 10px 14px; border-radius: 6px; margin-bottom: 6px; font-size: 14px; }
+    .timeline-item { display: flex; gap: 12px; margin-bottom: 12px; }
+    .timeline-phase { font-weight: 600; color: #7c3aed; min-width: 80px; font-size: 13px; }
+    .timeline-desc { color: #4b5563; font-size: 14px; }
+    .risk-item { background: #fef2f2; padding: 10px 14px; border-radius: 6px; margin-bottom: 6px; font-size: 14px; color: #991b1b; border-left: 3px solid #ef4444; }
+    .meta { text-align: center; font-size: 12px; color: #9ca3af; margin-top: 20px; padding-top: 16px; border-top: 1px solid #e5e7eb; }
+    .tag { display: inline-block; background: #e5e7eb; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-right: 4px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📋 ${prd.title}</h1>
+      <p>${prd.overview.tagline}</p>
+    </div>
+    <div class="content">
+      <div class="section">
+        <div class="section-title">Overview</div>
+        <p style="margin: 0 0 12px 0;"><strong>Problem:</strong> ${prd.overview.problemStatement}</p>
+        <p style="margin: 0;">${prd.overview.description}</p>
+        <p style="margin: 12px 0 0 0;"><span class="tag">${blockType}</span> <span class="tag">${blockName}</span></p>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Target Audience</div>
+        <p style="margin: 0 0 8px 0;"><strong>${prd.targetAudience.primary}</strong></p>
+        <p style="margin: 0; font-size: 14px; color: #6b7280;">
+          <strong>Demographics:</strong> ${prd.targetAudience.demographics.join(' • ')}
+        </p>
+        <p style="margin: 8px 0 0 0; font-size: 14px; color: #6b7280;">
+          <strong>Pain Points:</strong> ${prd.targetAudience.painPoints.join(' • ')}
+        </p>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Core Features</div>
+        ${prd.features.core.map(f => `
+          <div class="feature-card">
+            <span class="feature-name">${f.name}</span>
+            <span class="priority priority-${f.priority === 'must-have' ? 'must' : f.priority === 'should-have' ? 'should' : 'nice'}">${f.priority}</span>
+            <div class="feature-desc">${f.description}</div>
+          </div>
+        `).join('')}
+        ${prd.features.future.length > 0 ? `
+          <p style="margin: 12px 0 0 0; font-size: 13px; color: #6b7280;">
+            <strong>Future Ideas:</strong> ${prd.features.future.join(' • ')}
+          </p>
+        ` : ''}
+      </div>
+
+      <div class="section">
+        <div class="section-title">Technical Requirements</div>
+        ${prd.technicalRequirements.map(req => `
+          <div class="list-item">✦ ${req}</div>
+        `).join('')}
+      </div>
+
+      <div class="section">
+        <div class="section-title">Success Metrics</div>
+        ${prd.successMetrics.map(metric => `
+          <div class="list-item">📊 ${metric}</div>
+        `).join('')}
+      </div>
+
+      <div class="section">
+        <div class="section-title">Timeline</div>
+        ${prd.timeline.map(item => `
+          <div class="timeline-item">
+            <span class="timeline-phase">${item.phase}</span>
+            <span class="timeline-desc">${item.description}</span>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="section">
+        <div class="section-title">Risks & Challenges</div>
+        ${prd.risks.map(risk => `
+          <div class="risk-item">⚠️ ${risk}</div>
+        `).join('')}
+      </div>
+
+      <div class="meta">
+        Version ${prd.version} • Created ${prd.createdAt}
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+    `;
+
+    const { error } = await resend.emails.send({
+      from: 'Renaissance City <noreply@builddetroit.xyz>',
+      to: [PRD_NOTIFICATION_EMAIL],
+      subject: `📋 PRD: ${prd.overview.name} (${blockType})`,
+      html: emailHtml,
+    });
+
+    if (error) {
+      console.error('Failed to send PRD email:', error);
+      return false;
+    }
+
+    console.log('✅ PRD email sent to', PRD_NOTIFICATION_EMAIL);
+    return true;
+  } catch (err) {
+    console.error('Error sending PRD email:', err);
+    return false;
+  }
 }
 
 export default async function handler(
@@ -290,6 +435,19 @@ Return ONLY valid JSON, no markdown or explanation.`;
     } catch (parseError) {
       console.error('Failed to parse AI response:', responseText);
       throw new Error('Failed to parse AI response');
+    }
+
+    // Send PRD email if a PRD was generated
+    if (parsed.prd && parsed.summary) {
+      sendPRDEmail(
+        parsed.prd,
+        parsed.summary,
+        blockType || 'App Block',
+        blockName || parsed.summary.name || 'Untitled'
+      ).catch(err => {
+        // Don't fail the request if email fails
+        console.error('PRD email error (non-blocking):', err);
+      });
     }
 
     return res.status(200).json({

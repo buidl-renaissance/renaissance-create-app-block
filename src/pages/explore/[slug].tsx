@@ -272,7 +272,7 @@ export default function ExploreDetailPage() {
               <NoBlocksMessage>
                 <ModalTitle>Create an App Block First</ModalTitle>
                 <p>You need to have an App Block before you can install other blocks.</p>
-                <CreateBlockLink href="/app-blocks/new">
+                <CreateBlockLink href="/get-started?new=true">
                   Create App Block
                 </CreateBlockLink>
               </NoBlocksMessage>

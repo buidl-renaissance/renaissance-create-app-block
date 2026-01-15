@@ -63,7 +63,7 @@ const HeaderUser = styled(Link)`
   align-items: center;
   gap: 0.75rem;
   text-decoration: none;
-  padding: 0.375rem 0.75rem 0.375rem 0.375rem;
+  padding: 0.25rem 0.5rem 0.25rem 0.25rem;
   border-radius: 100px;
   transition: all 0.2s ease;
   
@@ -73,8 +73,8 @@ const HeaderUser = styled(Link)`
 `;
 
 const HeaderAvatar = styled.div`
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   overflow: hidden;
   border: 2px solid ${({ theme }) => theme.accentGold};
@@ -103,19 +103,16 @@ const HeaderAvatarFallback = styled.div`
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 0.875rem;
+  font-size: 1rem;
   font-weight: 600;
   font-family: 'Cormorant Garamond', Georgia, serif;
 `;
 
 const HeaderUserName = styled.span`
-  font-family: 'Crimson Pro', Georgia, serif;
-  font-size: 0.95rem;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.1rem;
+  font-weight: 600;
   color: ${({ theme }) => theme.text};
-  
-  @media (max-width: 480px) {
-    display: none;
-  }
 `;
 
 const HeaderActions = styled.div`
@@ -226,11 +223,11 @@ const BlocksListContainer = styled.div`
   flex-direction: column;
   gap: 0.75rem;
   width: 100%;
-  max-width: 400px;
+  max-width: 320px;
   margin-top: 1rem;
 `;
 
-const BlockCard = styled(Link)<{ $index: number }>`
+const BlockCard = styled(Link) <{ $index: number }>`
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -253,9 +250,9 @@ const BlockCardIcon = styled.div<{ $iconUrl?: string | null }>`
   width: 40px;
   height: 40px;
   border-radius: 8px;
-  background: ${({ $iconUrl, theme }) => 
-    $iconUrl 
-      ? `url(${$iconUrl}) center/cover no-repeat` 
+  background: ${({ $iconUrl, theme }) =>
+    $iconUrl
+      ? `url(${$iconUrl}) center/cover no-repeat`
       : `linear-gradient(135deg, ${theme.accent} 0%, ${theme.accentGold} 100%)`
   };
   display: flex;
@@ -311,6 +308,11 @@ const BlockCardMeta = styled.span`
   font-family: 'Crimson Pro', Georgia, serif;
   font-size: 0.8rem;
   color: ${({ theme }) => theme.textSecondary};
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
 `;
 
 const SectionLabel = styled.h3`
@@ -356,6 +358,17 @@ const getStageLabel = (stage: string | null): string => {
     case 'connectors': return 'Connecting services';
     case 'complete': return 'Complete';
     default: return 'In progress';
+  }
+};
+
+// Extract tagline from onboardingData
+const getBlockTagline = (block: AppBlock): string | null => {
+  if (!block.onboardingData) return null;
+  try {
+    const data = JSON.parse(block.onboardingData as string);
+    return data.prd?.overview?.tagline || data.summary?.tagline || null;
+  } catch {
+    return null;
   }
 };
 
@@ -435,14 +448,8 @@ const DashboardPage: React.FC = () => {
               <HeaderAvatarFallback>{initials}</HeaderAvatarFallback>
             )}
           </HeaderAvatar>
-          <HeaderUserName>{displayName}</HeaderUserName>
+          <HeaderUserName>Welcome, {displayName}</HeaderUserName>
         </HeaderUser>
-        
-        <HeaderActions>
-          <HeaderButton href="/account">
-            ⚙️
-          </HeaderButton>
-        </HeaderActions>
       </Header>
 
       <Main>
@@ -452,58 +459,65 @@ const DashboardPage: React.FC = () => {
 
         <ContentSection>
           <BlockTitle>Your Blocks</BlockTitle>
-              <Divider />
-              <BlockText>
+          <Divider />
+          <BlockText>
             Building the renaissance, one block at a time.
-              </BlockText>
-              
+          </BlockText>
+
           <BlocksListContainer>
             {/* Draft blocks - in progress */}
             {draftBlocks.length > 0 && (
               <>
                 <SectionLabel>In Progress</SectionLabel>
-                {draftBlocks.map((block, index) => (
-                  <BlockCard 
-                    key={block.id} 
-                    href={getBlockUrl(block)}
-                    $index={index}
-                  >
-                    <BlockCardIcon $iconUrl={block.iconUrl}>
-                      {!block.iconUrl && block.name.charAt(0).toUpperCase()}
-                    </BlockCardIcon>
-                    <BlockCardInfo>
-                      <BlockCardName>{block.name}</BlockCardName>
-                      <BlockCardMeta>{getStageLabel(block.onboardingStage)}</BlockCardMeta>
-                    </BlockCardInfo>
-                    <DraftBadge>Resume</DraftBadge>
-                  </BlockCard>
-                ))}
+                {draftBlocks.map((block, index) => {
+                  const tagline = getBlockTagline(block);
+                  return (
+                    <BlockCard
+                      key={block.id}
+                      href={getBlockUrl(block)}
+                      $index={index}
+                    >
+                      <BlockCardIcon $iconUrl={block.iconUrl}>
+                        {!block.iconUrl && block.name.charAt(0).toUpperCase()}
+                      </BlockCardIcon>
+                      <BlockCardInfo>
+                        <BlockCardName>{block.name}</BlockCardName>
+                        <BlockCardMeta>{tagline || getStageLabel(block.onboardingStage)}</BlockCardMeta>
+                      </BlockCardInfo>
+                      <DraftBadge>Resume</DraftBadge>
+                    </BlockCard>
+                  );
+                })}
               </>
             )}
-            
+
             {/* Active blocks */}
             {activeBlocks.length > 0 && (
               <>
                 {draftBlocks.length > 0 && <SectionLabel style={{ marginTop: '1rem' }}>Active</SectionLabel>}
-                {activeBlocks.map((block, index) => (
-                  <BlockCard 
-                    key={block.id} 
-                    href={`/app-blocks/${block.id}`}
-                    $index={index + draftBlocks.length}
-                  >
-                    <BlockCardIcon $iconUrl={block.iconUrl}>
-                      {!block.iconUrl && block.name.charAt(0).toUpperCase()}
-                    </BlockCardIcon>
-                    <BlockCardInfo>
-                      <BlockCardName>{block.name}</BlockCardName>
-                    </BlockCardInfo>
-                    <BlockCardArrow>→</BlockCardArrow>
-                  </BlockCard>
-                ))}
+                {activeBlocks.map((block, index) => {
+                  const tagline = getBlockTagline(block);
+                  return (
+                    <BlockCard
+                      key={block.id}
+                      href={`/app-blocks/${block.id}`}
+                      $index={index + draftBlocks.length}
+                    >
+                      <BlockCardIcon $iconUrl={block.iconUrl}>
+                        {!block.iconUrl && block.name.charAt(0).toUpperCase()}
+                      </BlockCardIcon>
+                      <BlockCardInfo>
+                        <BlockCardName>{block.name}</BlockCardName>
+                        {tagline && <BlockCardMeta>{tagline}</BlockCardMeta>}
+                      </BlockCardInfo>
+                      <BlockCardArrow>→</BlockCardArrow>
+                    </BlockCard>
+                  );
+                })}
               </>
             )}
-            
-            <NewBlockButton href="/get-started">
+
+            <NewBlockButton href="/get-started?new=true">
               + Create New Block
             </NewBlockButton>
           </BlocksListContainer>

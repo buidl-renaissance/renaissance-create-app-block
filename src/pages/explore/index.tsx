@@ -129,7 +129,7 @@ export default function ExplorePage() {
                 </Subtitle>
               </div>
               
-              <CreateButton href="/app-blocks/new">
+              <CreateButton href="/get-started?new=true">
                 + Create Your Block
               </CreateButton>
             </TitleRow>

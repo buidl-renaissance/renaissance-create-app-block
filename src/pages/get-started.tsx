@@ -331,7 +331,6 @@ const GetStartedPage: React.FC = () => {
   const { user, isLoading: isUserLoading } = useUser();
   const { appBlocks, isLoading: isBlocksLoading, fetchAppBlocks } = useAppBlock();
   
-  const [imageError, setImageError] = useState(false);
   const [blockName, setBlockName] = useState('');
   const [isBlockClaimed, setIsBlockClaimed] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -351,9 +350,10 @@ const GetStartedPage: React.FC = () => {
     }
   }, [user, fetchAppBlocks]);
 
-  // Redirect to dashboard if user already has blocks
+  // Redirect to dashboard if user already has blocks (unless explicitly creating new)
   useEffect(() => {
-    if (!isBlocksLoading && appBlocks.length > 0) {
+    const isCreatingNew = router.query.new === 'true';
+    if (!isBlocksLoading && appBlocks.length > 0 && !isCreatingNew) {
       router.push('/dashboard');
     }
   }, [isBlocksLoading, appBlocks, router]);
@@ -419,14 +419,6 @@ const GetStartedPage: React.FC = () => {
     return null;
   }
 
-  const displayName = user.username || user.displayName || 'User';
-  const initials = displayName
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-
   return (
     <Container>
       <Head>
@@ -440,21 +432,6 @@ const GetStartedPage: React.FC = () => {
         {!isBlockClaimed ? (
           // Step 1: Name your block
           <>
-            <UserSection>
-              <ProfileImageContainer href="/account" title="Account Settings">
-                {user.pfpUrl && !imageError ? (
-                  <ProfileImage
-                    src={user.pfpUrl}
-                    alt={displayName}
-                    onError={() => setImageError(true)}
-                  />
-                ) : (
-                  <DefaultAvatar>{initials}</DefaultAvatar>
-                )}
-              </ProfileImageContainer>
-              <Greeting>Welcome, {displayName}</Greeting>
-            </UserSection>
-
             <BlockImageContainer>
               <BlockImage src="/app-block.png" alt="Your Block" />
             </BlockImageContainer>

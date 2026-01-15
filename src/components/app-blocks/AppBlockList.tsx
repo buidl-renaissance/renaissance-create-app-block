@@ -157,7 +157,7 @@ export const AppBlockList: React.FC<AppBlockListProps> = ({
       <EmptyState>
         <EmptyTitle>No App Blocks Yet</EmptyTitle>
         <EmptyText>{emptyMessage}</EmptyText>
-        <CreateButton href="/app-blocks/new">
+        <CreateButton href="/get-started?new=true">
           + Create Your First Block
         </CreateButton>
       </EmptyState>

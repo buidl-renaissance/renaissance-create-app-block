@@ -188,7 +188,7 @@ async function sendPRDEmail(
     `;
 
     const { error } = await resend.emails.send({
-      from: 'Renaissance City <john@thebarefoot.dev>',
+      from: 'Renaissance City <john@builddetroit.xyz>',
       to: [PRD_NOTIFICATION_EMAIL],
       subject: `📋 PRD: ${prd.overview.name} (${blockType})`,
       html: emailHtml,

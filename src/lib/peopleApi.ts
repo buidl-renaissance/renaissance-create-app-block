@@ -12,7 +12,6 @@ export interface PeopleUser {
   username: string | null;
   name: string | null;
   profilePicture: string | null;
-  farcasterId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -22,7 +21,6 @@ export interface SyncUserData {
   username?: string;
   name?: string;
   profilePicture?: string;
-  farcasterId?: string;
 }
 
 export interface SyncUserResponse {

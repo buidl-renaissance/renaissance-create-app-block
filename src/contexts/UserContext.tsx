@@ -19,14 +19,12 @@ const USER_STORAGE_KEY = 'renaissance_app_user';
 interface RenaissanceContext {
   isAuthenticated?: boolean;
   renaissanceUserId?: number;
-  fid?: number; // Legacy support
   user?: {
     username?: string;
     displayName?: string;
     pfpUrl?: string;
     publicAddress?: string;
     renaissanceUserId?: number;
-    fid?: number;
   };
 }
 
@@ -329,21 +327,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
         
-        // Handle farcaster:context:ready message from Renaissance native app
-        if (data?.type === 'farcaster:context:ready' && data?.context) {
-          console.log('📱 Received context via postMessage (farcaster:context:ready)');
-          // Extract renaissanceUserId from context.user if not at top level
-          const ctx: RenaissanceContext = {
-            isAuthenticated: data.authenticated || true,
-            renaissanceUserId: data.context?.renaissanceUserId || data.context?.user?.renaissanceUserId,
-            user: data.context?.user,
-          };
-          const contextUser = await authenticateFromContext(ctx);
-          if (contextUser) {
-            setUser(contextUser);
-          }
-        }
-        
         // Also check for direct context data (some apps send the context directly)
         if (data?.renaissanceUserId || data?.user?.renaissanceUserId) {
           console.log('📱 Received direct context via postMessage');
@@ -371,47 +354,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
     document.addEventListener('renaissanceContext', handleDocMessage);
-    
-    // Listen for farcaster:context:ready CustomEvent from Renaissance native app
-    const handleFarcasterContextReady = async (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const detail = customEvent.detail;
-      console.log('📱 Received farcaster:context:ready CustomEvent:', detail);
-      
-      if (detail?.user?.renaissanceUserId || detail?.renaissanceUserId) {
-        const ctx: RenaissanceContext = {
-          isAuthenticated: true,
-          renaissanceUserId: detail.renaissanceUserId || detail.user?.renaissanceUserId,
-          user: detail.user,
-        };
-        const contextUser = await authenticateFromContext(ctx);
-        if (contextUser) {
-          setUser(contextUser);
-        }
-      }
-    };
-    window.addEventListener('farcaster:context:ready', handleFarcasterContextReady);
-    
-    // Listen for farcaster:context:updated CustomEvent (auth state changes)
-    const handleFarcasterContextUpdated = async (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const detail = customEvent.detail;
-      console.log('📱 Received farcaster:context:updated CustomEvent:', detail);
-      
-      const context = detail?.context;
-      if (context?.user?.renaissanceUserId || context?.renaissanceUserId) {
-        const ctx: RenaissanceContext = {
-          isAuthenticated: detail.authenticated || true,
-          renaissanceUserId: context.renaissanceUserId || context.user?.renaissanceUserId,
-          user: context.user,
-        };
-        const contextUser = await authenticateFromContext(ctx);
-        if (contextUser) {
-          setUser(contextUser);
-        }
-      }
-    };
-    window.addEventListener('farcaster:context:updated', handleFarcasterContextUpdated);
     
     // Register callback for global setRenaissanceContext function
     contextCallback = async (ctx: RenaissanceContext) => {
@@ -448,8 +390,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       mounted = false;
       window.removeEventListener('message', handleMessage);
       document.removeEventListener('renaissanceContext', handleDocMessage);
-      window.removeEventListener('farcaster:context:ready', handleFarcasterContextReady);
-      window.removeEventListener('farcaster:context:updated', handleFarcasterContextUpdated);
       contextCallback = null;
       clearInterval(checkInterval);
     };

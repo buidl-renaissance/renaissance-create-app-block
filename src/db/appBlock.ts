@@ -33,6 +33,9 @@ export async function createAppBlock(data: {
   ownerUserId: string;
   description?: string;
   iconUrl?: string;
+  gitHubUrl?: string;
+  appUrl?: string;
+  tags?: string[];
   status?: AppBlockStatus;
   blockType?: string;
   onboardingStage?: OnboardingStage;
@@ -48,6 +51,9 @@ export async function createAppBlock(data: {
     ownerUserId: data.ownerUserId,
     description: data.description,
     iconUrl: data.iconUrl,
+    gitHubUrl: data.gitHubUrl,
+    appUrl: data.appUrl,
+    tags: data.tags ? JSON.stringify(data.tags) : null,
     status: data.status || 'draft',
     blockType: data.blockType,
     onboardingStage: data.onboardingStage || 'questions',
@@ -223,11 +229,23 @@ export async function getAppBlocksByUser(userId: string): Promise<AppBlock[]> {
 
 export async function updateAppBlock(
   id: string,
-  data: Partial<Pick<NewAppBlock, 'name' | 'description' | 'iconUrl'>>
+  data: Partial<Pick<NewAppBlock, 'name' | 'description' | 'iconUrl' | 'gitHubUrl' | 'appUrl'>> & { tags?: string[] }
 ): Promise<AppBlock | null> {
   const db = getDb();
+  const updateData: Record<string, unknown> = { ...data, updatedAt: new Date() };
+  
+  // Convert tags array to JSON string if provided
+  if (data.tags !== undefined) {
+    updateData.tags = data.tags ? JSON.stringify(data.tags) : null;
+    delete updateData.tags; // Remove from spread
+  }
+  
   await db.update(appBlocks)
-    .set({ ...data, updatedAt: new Date() })
+    .set({
+      ...data,
+      tags: data.tags ? JSON.stringify(data.tags) : undefined,
+      updatedAt: new Date(),
+    })
     .where(eq(appBlocks.id, id));
   
   return getAppBlockById(id);
@@ -555,6 +573,15 @@ export async function cleanupExpiredTokens(): Promise<number> {
 // ============================================
 // Helper Functions
 // ============================================
+
+export function parseTags(tagsJson: string | null): string[] {
+  if (!tagsJson) return [];
+  try {
+    return JSON.parse(tagsJson);
+  } catch {
+    return [];
+  }
+}
 
 export function parseScopes(scopesJson: string): string[] {
   try {

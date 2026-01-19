@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import Head from "next/head";
 import styled, { keyframes } from "styled-components";
 import { useRouter } from "next/router";
-import Link from "next/link";
 import { useUser } from "@/contexts/UserContext";
 import { useAppBlock } from "@/contexts/AppBlockContext";
 import { Loading } from "@/components/Loading";
+import AuthModal from "@/components/auth/AuthModal";
+import { User } from "@/db/user";
 
 const APP_NAME = "Renaissance City";
 
@@ -57,83 +58,6 @@ const Main = styled.main`
   text-align: center;
   max-width: 600px;
   width: 100%;
-`;
-
-// User Welcome Section
-const UserSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 2rem;
-  animation: ${scaleIn} 0.5s ease-out;
-`;
-
-const ProfileImageContainer = styled(Link)`
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  overflow: hidden;
-  border: 3px solid ${({ theme }) => theme.accentGold};
-  background: ${({ theme }) => theme.surface};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 
-    0 8px 24px ${({ theme }) => theme.shadow},
-    inset 0 0 0 1px ${({ theme }) => theme.accent}22;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-decoration: none;
-  position: relative;
-
-  &::after {
-    content: '';
-    position: absolute;
-    inset: -5px;
-    border-radius: 50%;
-    border: 1px solid ${({ theme }) => theme.accentGold}40;
-  }
-  
-  &:hover {
-    transform: scale(1.05);
-    border-color: ${({ theme }) => theme.accent};
-  }
-`;
-
-const ProfileImage = styled.img`
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-`;
-
-const DefaultAvatar = styled.div`
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    135deg,
-    ${({ theme }) => theme.accent} 0%,
-    ${({ theme }) => theme.accentGold} 100%
-  );
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 2rem;
-  font-weight: 600;
-  font-family: 'Cormorant Garamond', Georgia, serif;
-`;
-
-const Greeting = styled.h1`
-  font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin: 0;
-  color: ${({ theme }) => theme.text};
-  
-  @media (max-width: 768px) {
-    font-size: 1.25rem;
-  }
 `;
 
 // Block Content Section
@@ -328,23 +252,26 @@ const BlockTypeDesc = styled.span`
 
 const GetStartedPage: React.FC = () => {
   const router = useRouter();
-  const { user, isLoading: isUserLoading } = useUser();
-  const { appBlocks, isLoading: isBlocksLoading } = useAppBlock();
+  const { user, isLoading: isUserLoading, refreshUser } = useUser();
+  const { appBlocks, isLoading: isBlocksLoading, fetchAppBlocks } = useAppBlock();
   
   const [blockName, setBlockName] = useState('');
   const [isBlockClaimed, setIsBlockClaimed] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pendingBlockType, setPendingBlockType] = useState<string | null>(null);
+  
+  // Track if we should check for redirect after auth
+  const shouldRedirectRef = useRef(false);
 
-  // Redirect to auth if not authenticated, or to dashboard if user has blocks
+  // Redirect to dashboard if authenticated user already has blocks (unless creating new)
   useEffect(() => {
     if (isUserLoading || isBlocksLoading) return;
     
-    if (!user) {
-      router.replace('/auth');
-    } else {
+    if (user) {
       const isCreatingNew = router.query.new === 'true';
-      if (appBlocks.length > 0 && !isCreatingNew) {
+      if (appBlocks.length > 0 && !isCreatingNew && !shouldRedirectRef.current) {
         router.replace('/dashboard');
       }
     }
@@ -361,10 +288,8 @@ const GetStartedPage: React.FC = () => {
     setIsBlockClaimed(true);
   };
 
-  // Handle selecting block type - creates the block and redirects to questions
-  const handleSelectBlockType = async (type: string) => {
-    if (isCreating) return;
-    
+  // Create the block and redirect to questions
+  const createBlockAndRedirect = useCallback(async (type: string) => {
     setIsCreating(true);
     setCreateError(null);
     
@@ -401,10 +326,47 @@ const GetStartedPage: React.FC = () => {
       setCreateError('Failed to create block. Please try again.');
       setIsCreating(false);
     }
-  };
+  }, [blockName, router]);
 
-  // Show loading while checking auth, fetching blocks, or about to redirect
-  if (isUserLoading || isBlocksLoading || !user) {
+  // Handle selecting block type - shows auth modal if not logged in
+  const handleSelectBlockType = async (type: string) => {
+    if (isCreating) return;
+    
+    // If not authenticated, show auth modal
+    if (!user) {
+      setPendingBlockType(type);
+      setShowAuthModal(true);
+      return;
+    }
+    
+    // User is authenticated, create the block
+    await createBlockAndRedirect(type);
+  };
+  
+  // Handle successful authentication
+  const handleAuthSuccess = useCallback(async (_authenticatedUser: User) => {
+    setShowAuthModal(false);
+    shouldRedirectRef.current = true; // Prevent redirect to dashboard
+    
+    // Refresh user context
+    await refreshUser();
+    await fetchAppBlocks();
+    
+    // If we have a pending block type, create the block
+    if (pendingBlockType) {
+      await createBlockAndRedirect(pendingBlockType);
+      setPendingBlockType(null);
+    }
+  }, [pendingBlockType, createBlockAndRedirect, refreshUser, fetchAppBlocks]);
+
+  // Show loading while checking if authenticated user should redirect to dashboard
+  const isCreatingNew = router.query.new === 'true';
+  if (isUserLoading || (user && isBlocksLoading)) {
+    return <Loading text="Loading..." />;
+  }
+  
+  // If user has blocks and not creating new, show loading while redirecting
+  if (user && appBlocks.length > 0 && !isCreatingNew && !shouldRedirectRef.current) {
     return <Loading text="Loading..." />;
   }
 
@@ -535,6 +497,16 @@ const GetStartedPage: React.FC = () => {
           </>
         )}
       </Main>
+      
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => {
+          setShowAuthModal(false);
+          setPendingBlockType(null);
+        }}
+        onSuccess={handleAuthSuccess}
+        defaultView="create"
+      />
     </Container>
   );
 };

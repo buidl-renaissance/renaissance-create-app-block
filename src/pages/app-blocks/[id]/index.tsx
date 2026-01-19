@@ -177,6 +177,189 @@ const AddButton = styled(Link)`
   }
 `;
 
+const RegisterAppCard = styled.div<{ $isRegistered?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: ${({ theme, $isRegistered }) => $isRegistered ? theme.accent + '08' : theme.surface};
+  border: 1px solid ${({ theme, $isRegistered }) => $isRegistered ? theme.accent + '40' : theme.border};
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    border-color: ${({ theme }) => theme.accent};
+    box-shadow: 0 4px 16px ${({ theme }) => theme.shadow};
+    transform: translateY(-2px);
+  }
+`;
+
+const RegisterAppIcon = styled.div`
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, ${({ theme }) => theme.accent} 0%, ${({ theme }) => theme.accentGold} 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+`;
+
+const RegisterAppContent = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const RegisterAppTitle = styled.h4`
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: ${({ theme }) => theme.text};
+  margin: 0 0 0.25rem 0;
+`;
+
+const RegisterAppDescription = styled.p`
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-size: 0.9rem;
+  color: ${({ theme }) => theme.textSecondary};
+  margin: 0;
+  line-height: 1.4;
+`;
+
+const RegisterAppArrow = styled.span`
+  font-size: 1.25rem;
+  color: ${({ theme }) => theme.accent};
+  transition: transform 0.2s ease;
+  
+  ${RegisterAppCard}:hover & {
+    transform: translateX(4px);
+  }
+`;
+
+const RegisterModal = styled.div`
+  position: fixed;
+  inset: 0;
+  background: ${({ theme }) => theme.overlay};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+`;
+
+const RegisterModalCard = styled.div`
+  background: ${({ theme }) => theme.surface};
+  border-radius: 16px;
+  padding: 2rem;
+  max-width: 500px;
+  width: 100%;
+  box-shadow: 0 20px 40px ${({ theme }) => theme.shadow};
+`;
+
+const RegisterModalTitle = styled.h2`
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: ${({ theme }) => theme.text};
+  margin: 0 0 0.5rem 0;
+`;
+
+const RegisterModalSubtitle = styled.p`
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-size: 0.95rem;
+  color: ${({ theme }) => theme.textSecondary};
+  margin: 0 0 1.5rem 0;
+`;
+
+const RegisterInputGroup = styled.div`
+  margin-bottom: 1rem;
+`;
+
+const RegisterLabel = styled.label`
+  display: block;
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: ${({ theme }) => theme.text};
+  margin-bottom: 0.5rem;
+  
+  span {
+    color: ${({ theme }) => theme.textSecondary};
+    font-weight: 400;
+  }
+`;
+
+const RegisterInput = styled.input<{ $hasError?: boolean }>`
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-size: 1rem;
+  color: ${({ theme }) => theme.text};
+  background: ${({ theme }) => theme.background};
+  border: 1px solid ${({ theme, $hasError }) => $hasError ? theme.danger : theme.border};
+  border-radius: 8px;
+  transition: border-color 0.2s ease;
+  
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.accent};
+  }
+  
+  &::placeholder {
+    color: ${({ theme }) => theme.textSecondary};
+  }
+`;
+
+const RegisterModalError = styled.p`
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-size: 0.9rem;
+  color: ${({ theme }) => theme.danger};
+  margin: 0 0 1rem 0;
+  padding: 0.75rem;
+  background: ${({ theme }) => theme.dangerMuted};
+  border-radius: 8px;
+`;
+
+const RegisterModalActions = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+`;
+
+const RegisterModalButton = styled.button<{ $primary?: boolean; disabled?: boolean }>`
+  flex: 1;
+  padding: 0.875rem 1.5rem;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: ${({ disabled }) => disabled ? 'not-allowed' : 'pointer'};
+  transition: all 0.2s ease;
+  
+  ${({ $primary, theme, disabled }) => $primary ? `
+    background: linear-gradient(135deg, ${theme.accent} 0%, ${theme.accentGold} 100%);
+    color: white;
+    border: none;
+    opacity: ${disabled ? 0.7 : 1};
+    
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px ${theme.accent}40;
+    }
+  ` : `
+    background: transparent;
+    color: ${theme.textSecondary};
+    border: 1px solid ${theme.border};
+    
+    &:hover {
+      border-color: ${theme.text};
+      color: ${theme.text};
+    }
+  `}
+`;
+
 const PRDBriefCard = styled(Link)`
   display: block;
   text-decoration: none;
@@ -529,6 +712,7 @@ const AppBlockDetailPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showIconEditModal, setShowIconEditModal] = useState(false);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [prdData, setPrdData] = useState<{
@@ -536,6 +720,12 @@ const AppBlockDetailPage: React.FC = () => {
     description?: string;
     features?: string[];
   } | null>(null);
+  
+  // Registration form state
+  const [gitHubUrl, setGitHubUrl] = useState('');
+  const [appUrl, setAppUrl] = useState('');
+  const [isSavingUrls, setIsSavingUrls] = useState(false);
+  const [urlError, setUrlError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -607,6 +797,57 @@ const AppBlockDetailPage: React.FC = () => {
       setAppBlock({ ...appBlock, iconUrl });
     }
   };
+
+  const handleOpenRegisterModal = () => {
+    // Initialize form with current values
+    setGitHubUrl(appBlock?.gitHubUrl || '');
+    setAppUrl(appBlock?.appUrl || '');
+    setUrlError(null);
+    setShowRegisterModal(true);
+  };
+
+  const handleSaveUrls = async () => {
+    if (!appBlock) return;
+    
+    // Validate both URLs are provided
+    if (!gitHubUrl.trim() || !appUrl.trim()) {
+      setUrlError('Both GitHub URL and App URL are required');
+      return;
+    }
+    
+    setIsSavingUrls(true);
+    setUrlError(null);
+    
+    try {
+      const response = await fetch(`/api/app-blocks/${appBlock.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gitHubUrl: gitHubUrl.trim(),
+          appUrl: appUrl.trim(),
+        }),
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        setUrlError(data.error || 'Failed to save URLs');
+        return;
+      }
+      
+      const data = await response.json();
+      
+      // Update local state
+      setAppBlock({ ...appBlock, gitHubUrl: data.appBlock.gitHubUrl, appUrl: data.appBlock.appUrl });
+      setShowRegisterModal(false);
+    } catch (error) {
+      console.error('Error saving URLs:', error);
+      setUrlError('Something went wrong. Please try again.');
+    } finally {
+      setIsSavingUrls(false);
+    }
+  };
+
+  const isRegistered = !!(appBlock?.gitHubUrl && appBlock?.appUrl);
 
   if (isUserLoading || isLoading) {
     return <Loading text="Loading..." />;
@@ -712,6 +953,37 @@ const AppBlockDetailPage: React.FC = () => {
 
         <Section>
           <SectionHeader>
+            <SectionTitle>App Registration</SectionTitle>
+          </SectionHeader>
+          <RegisterAppCard onClick={handleOpenRegisterModal} $isRegistered={isRegistered}>
+            <RegisterAppIcon>
+              {isRegistered ? (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              ) : (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
+            </RegisterAppIcon>
+            <RegisterAppContent>
+              <RegisterAppTitle>
+                {isRegistered ? 'App Registered' : 'Register This App'}
+              </RegisterAppTitle>
+              <RegisterAppDescription>
+                {isRegistered 
+                  ? 'GitHub and App URL linked'
+                  : 'Add a GitHub URL and app link to register this block'
+                }
+              </RegisterAppDescription>
+            </RegisterAppContent>
+            <RegisterAppArrow>{isRegistered ? '✎' : '→'}</RegisterAppArrow>
+          </RegisterAppCard>
+        </Section>
+
+        <Section>
+          <SectionHeader>
             <SectionTitle>Connected App Blocks</SectionTitle>
             <AddButton href="/explore">
               + Browse
@@ -771,6 +1043,64 @@ const AppBlockDetailPage: React.FC = () => {
         appBlockId={appBlock.id}
         currentIconUrl={appBlock.iconUrl}
       />
+
+      {showRegisterModal && (
+        <RegisterModal onClick={() => setShowRegisterModal(false)}>
+          <RegisterModalCard onClick={e => e.stopPropagation()}>
+            <RegisterModalTitle>Register {appBlock.name}</RegisterModalTitle>
+            <RegisterModalSubtitle>
+              Add links to your app&apos;s GitHub repository and live URL
+            </RegisterModalSubtitle>
+            
+            {urlError && <RegisterModalError>{urlError}</RegisterModalError>}
+            
+            <RegisterInputGroup>
+              <RegisterLabel htmlFor="gitHubUrl">
+                GitHub URL <span>(required)</span>
+              </RegisterLabel>
+              <RegisterInput
+                id="gitHubUrl"
+                type="url"
+                value={gitHubUrl}
+                onChange={(e) => setGitHubUrl(e.target.value)}
+                placeholder="https://github.com/username/repo"
+                $hasError={!!urlError && !gitHubUrl.trim()}
+              />
+            </RegisterInputGroup>
+            
+            <RegisterInputGroup>
+              <RegisterLabel htmlFor="appUrl">
+                App URL <span>(required)</span>
+              </RegisterLabel>
+              <RegisterInput
+                id="appUrl"
+                type="url"
+                value={appUrl}
+                onChange={(e) => setAppUrl(e.target.value)}
+                placeholder="https://myapp.com"
+                $hasError={!!urlError && !appUrl.trim()}
+              />
+            </RegisterInputGroup>
+            
+            <RegisterModalActions>
+              <RegisterModalButton 
+                type="button" 
+                onClick={() => setShowRegisterModal(false)}
+              >
+                Cancel
+              </RegisterModalButton>
+              <RegisterModalButton 
+                type="button"
+                $primary 
+                onClick={handleSaveUrls}
+                disabled={isSavingUrls}
+              >
+                {isSavingUrls ? 'Saving...' : 'Save'}
+              </RegisterModalButton>
+            </RegisterModalActions>
+          </RegisterModalCard>
+        </RegisterModal>
+      )}
     </Container>
   );
 };

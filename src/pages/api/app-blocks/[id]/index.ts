@@ -39,7 +39,8 @@ async function getCurrentUser(req: NextApiRequest) {
 
 /**
  * GET /api/app-blocks/[id] - Get App Block details
- * PUT /api/app-blocks/[id] - Update App Block
+ * PUT /api/app-blocks/[id] - Update App Block (name, description, iconUrl)
+ * PATCH /api/app-blocks/[id] - Partial update App Block (gitHubUrl, appUrl, tags)
  * DELETE /api/app-blocks/[id] - Delete App Block
  * POST /api/app-blocks/[id] - Rotate service account key (action=rotate-key)
  */
@@ -143,6 +144,59 @@ export default async function handler(
         }
 
         return res.status(400).json({ error: 'Invalid action' });
+      }
+
+      case 'PATCH': {
+        // Update registration fields (gitHubUrl, appUrl, tags)
+        const { gitHubUrl, appUrl, tags } = req.body as {
+          gitHubUrl?: string;
+          appUrl?: string;
+          tags?: string[];
+        };
+
+        const patchData: Partial<{ gitHubUrl: string; appUrl: string; tags: string[] }> = {};
+
+        // Both gitHubUrl and appUrl are required for registration
+        if (gitHubUrl !== undefined || appUrl !== undefined) {
+          if (!gitHubUrl || !appUrl) {
+            return res.status(400).json({ error: 'Both GitHub URL and App URL are required' });
+          }
+          
+          // Validate GitHub URL format
+          try {
+            const url = new URL(gitHubUrl);
+            if (!url.hostname.includes('github.com')) {
+              return res.status(400).json({ error: 'GitHub URL must be a valid GitHub URL' });
+            }
+            patchData.gitHubUrl = gitHubUrl.trim();
+          } catch {
+            return res.status(400).json({ error: 'Invalid GitHub URL format' });
+          }
+          
+          // Validate App URL format
+          try {
+            new URL(appUrl);
+            patchData.appUrl = appUrl.trim();
+          } catch {
+            return res.status(400).json({ error: 'Invalid App URL format' });
+          }
+        }
+
+        if (tags !== undefined) {
+          if (!Array.isArray(tags)) {
+            return res.status(400).json({ error: 'Tags must be an array' });
+          }
+          patchData.tags = tags;
+        }
+
+        const updatedAppBlock = await updateAppBlock(id, patchData);
+
+        console.log('✅ [PATCH /api/app-blocks/[id]] Updated App Block:', {
+          id,
+          updates: patchData,
+        });
+
+        return res.status(200).json({ appBlock: updatedAppBlock! });
       }
 
       case 'DELETE': {

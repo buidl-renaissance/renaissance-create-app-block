@@ -69,6 +69,10 @@ export interface InstallationWithConnector {
 export interface AppBlockWithInstallations extends AppBlock {
   installations: InstallationWithConnector[];
   hasServiceAccount: boolean;
+  // Explicitly include registration fields (inherited from AppBlock but needed for TypeScript)
+  gitHubUrl?: string | null;
+  appUrl?: string | null;
+  tags?: string | null;
 }
 
 // Registry Types

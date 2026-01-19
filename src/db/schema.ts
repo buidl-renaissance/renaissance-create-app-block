@@ -42,6 +42,9 @@ export const appBlocks = sqliteTable('app_blocks', {
   serviceAccountId: text('service_account_id'),
   description: text('description'),
   iconUrl: text('icon_url'),
+  gitHubUrl: text('github_url'), // Link to source code repository
+  appUrl: text('app_url'), // Link to live application
+  tags: text('tags'), // JSON array of tags for filtering
   // Status and progress tracking
   status: text('status').notNull().default('draft'), // draft, active, archived
   blockType: text('block_type'), // creator, community, project, business, game, unsure

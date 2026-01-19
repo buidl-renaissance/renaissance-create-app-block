@@ -403,12 +403,9 @@ const GetStartedPage: React.FC = () => {
     }
   };
 
-  if (isUserLoading || isBlocksLoading) {
+  // Show loading while checking auth, fetching blocks, or about to redirect
+  if (isUserLoading || isBlocksLoading || !user) {
     return <Loading text="Loading..." />;
-  }
-
-  if (!user) {
-    return null;
   }
 
   return (

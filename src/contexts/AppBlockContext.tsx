@@ -270,12 +270,13 @@ interface AppBlockContextType {
 const AppBlockContext = createContext<AppBlockContextType | undefined>(undefined);
 
 export const AppBlockProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useUser();
+  const { user, isLoading: isUserLoading } = useUser();
   const userRef = useRef(user);
   const [appBlocks, setAppBlocks] = useState<AppBlock[]>([]);
   const [currentAppBlock, setCurrentAppBlock] = useState<AppBlockWithInstallations | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Start true until first fetch completes
   const [error, setError] = useState<string | null>(null);
+  const [hasFetchedOnce, setHasFetchedOnce] = useState(false);
   
   const [connectors, setConnectors] = useState<ConnectorWithDetails[]>([]);
   const [connectorsLoading, setConnectorsLoading] = useState(false);
@@ -928,13 +929,19 @@ export const AppBlockProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Fetch app blocks when user changes
   useEffect(() => {
+    if (isUserLoading) return; // Wait for user context to finish loading
+    
     if (user) {
-      fetchAppBlocks();
+      fetchAppBlocks().finally(() => {
+        setHasFetchedOnce(true);
+      });
     } else {
       setAppBlocks([]);
       setCurrentAppBlock(null);
+      setIsLoading(false);
+      setHasFetchedOnce(true);
     }
-  }, [user, fetchAppBlocks]);
+  }, [user, isUserLoading, fetchAppBlocks]);
 
   const value: AppBlockContextType = {
     // State

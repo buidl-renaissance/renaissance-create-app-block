@@ -398,14 +398,9 @@ const DashboardPage: React.FC = () => {
     }
   }, [isUserLoading, isBlocksLoading, user, appBlocks.length, router]);
 
-  // Show loading while checking auth or fetching blocks
-  if (isUserLoading || isBlocksLoading) {
+  // Show loading while checking auth, fetching blocks, or about to redirect
+  if (isUserLoading || isBlocksLoading || !user || appBlocks.length === 0) {
     return <Loading text="Loading..." />;
-  }
-
-  // Don't render anything while redirecting
-  if (!user || appBlocks.length === 0) {
-    return null;
   }
 
   const displayName = user.username || user.displayName || 'User';

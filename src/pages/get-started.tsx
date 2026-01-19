@@ -341,11 +341,11 @@ const GetStartedPage: React.FC = () => {
     if (isUserLoading || isBlocksLoading) return;
     
     if (!user) {
-      router.push('/auth');
+      router.replace('/auth');
     } else {
       const isCreatingNew = router.query.new === 'true';
       if (appBlocks.length > 0 && !isCreatingNew) {
-        router.push('/dashboard');
+        router.replace('/dashboard');
       }
     }
   }, [isUserLoading, isBlocksLoading, user, appBlocks.length, router.query.new, router]);

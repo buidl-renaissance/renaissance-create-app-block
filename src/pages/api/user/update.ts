@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getUserById, updateUser } from '@/db/user';
+import { getUserById, updateUserProfile } from '@/db/user';
 import { uploadProfileImageToDO } from '@/utils/digitalOceanUpload';
 
 export const config = {
@@ -15,7 +15,7 @@ type ResponseData = {
     id: string;
     username: string | null;
     displayName: string | null;
-    pfpUrl: string | null;
+    profilePicture: string | null;
   };
   error?: string;
 };
@@ -47,25 +47,25 @@ export default async function handler(
     const { displayName, profilePicture } = req.body;
 
     const updateData: {
-      displayName?: string | null;
-      pfpUrl?: string | null;
+      displayName?: string;
+      profilePicture?: string | null;
     } = {};
 
     // Handle display name update
     if (displayName !== undefined) {
-      updateData.displayName = displayName === '' ? null : displayName;
+      updateData.displayName = displayName === '' ? undefined : displayName;
     }
 
     // Handle profile picture upload
     if (profilePicture !== undefined) {
       if (profilePicture === null || profilePicture === '') {
         // Clear profile picture
-        updateData.pfpUrl = null;
+        updateData.profilePicture = null;
       } else {
         // Upload new profile picture to Digital Ocean Spaces
         try {
           const imageUrl = await uploadProfileImageToDO(profilePicture, userId);
-          updateData.pfpUrl = imageUrl;
+          updateData.profilePicture = imageUrl;
         } catch (error) {
           console.error('Image upload failed:', error);
           return res.status(400).json({
@@ -76,7 +76,7 @@ export default async function handler(
     }
 
     // Update user in database
-    const updatedUser = await updateUser(userId, updateData);
+    const updatedUser = await updateUserProfile(userId, updateData);
 
     if (!updatedUser) {
       return res.status(500).json({ error: 'Failed to update user' });
@@ -87,7 +87,7 @@ export default async function handler(
         id: updatedUser.id,
         username: updatedUser.username ?? null,
         displayName: updatedUser.displayName ?? null,
-        pfpUrl: updatedUser.pfpUrl ?? null,
+        profilePicture: updatedUser.profilePicture ?? null,
       },
     });
   } catch (error) {

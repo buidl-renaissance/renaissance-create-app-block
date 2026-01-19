@@ -392,9 +392,9 @@ const DashboardPage: React.FC = () => {
     if (isUserLoading || isBlocksLoading) return;
     
     if (!user) {
-      router.push('/auth');
+      router.replace('/auth');
     } else if (appBlocks.length === 0) {
-      router.push('/get-started');
+      router.replace('/get-started');
     }
   }, [isUserLoading, isBlocksLoading, user, appBlocks.length, router]);
 

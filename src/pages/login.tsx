@@ -304,7 +304,7 @@ export default function LoginPage() {
       if (res.status === 404) {
         // Phone not found - redirect to register with phone pre-filled
         const registerUrl = `/register?phone=${encodeURIComponent(normalized)}&redirect=${encodeURIComponent(redirectUrl)}`;
-        router.push(registerUrl);
+        router.replace(registerUrl);
         return;
       }
 

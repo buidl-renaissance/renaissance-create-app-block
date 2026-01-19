@@ -24,31 +24,32 @@ export default class MyDocument extends Document {
   }
 
   render() {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://your-app.builddetroit.xyz';
-    
     return (
       <Html lang="en">
         <Head>
+          {/* Preconnect to Google Fonts for performance */}
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
           <link
             href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Crimson+Pro:wght@400;500;600&display=swap"
             rel="stylesheet"
           />
-          <link rel="icon" href="/favicon.ico" />
+          
+          {/* Favicons */}
+          <link rel="icon" href="/favicon.ico" sizes="32x32" />
+          <link rel="icon" href="/icon.svg" type="image/svg+xml" />
           
           {/* App Identification */}
           <meta name="application-name" content="Renaissance City" />
           <meta name="apple-mobile-web-app-title" content="Renaissance City" />
+          <meta name="apple-mobile-web-app-capable" content="yes" />
+          <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+          <meta name="mobile-web-app-capable" content="yes" />
+          <meta name="format-detection" content="telephone=no" />
           
-          {/* Open Graph / Social Media Meta Tags */}
-          <meta property="og:type" content="website" />
-          <meta property="og:site_name" content="Renaissance City" />
-          <meta property="og:image" content={`${appUrl}/thumbnail.jpg`} />
-          
-          {/* Twitter Card Meta Tags */}
-          <meta name="twitter:card" content="summary_large_image" />
-          <meta name="twitter:title" content="Renaissance City" />
-          <meta name="twitter:description" content="Detroit's Digital Renaissance" />
-          <meta name="twitter:image" content={`${appUrl}/thumbnail.jpg`} />
+          {/* Security */}
+          <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+          <meta name="referrer" content="strict-origin-when-cross-origin" />
         </Head>
         <body>
           <Main />

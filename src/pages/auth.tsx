@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import Head from "next/head";
+import { NextSeo } from "next-seo";
 import styled, { keyframes } from "styled-components";
 import { useRouter } from "next/router";
 import { useUser } from "@/contexts/UserContext";
@@ -241,12 +241,14 @@ const AuthPage: React.FC = () => {
 
   return (
     <Container>
-      <Head>
-        <title>Join | {APP_NAME}</title>
-        <meta name="description" content={`Create your ${APP_NAME} account`} />
-        <link rel="icon" href="/favicon.ico" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      </Head>
+      <NextSeo
+        title="Join"
+        description="Create your Renaissance City account and start building your block in Detroit's digital renaissance."
+        openGraph={{
+          title: `Join | ${APP_NAME}`,
+          description: "Create your account and start building your block.",
+        }}
+      />
 
       <LogoContainer>
         <Logo>Renaissance City</Logo>

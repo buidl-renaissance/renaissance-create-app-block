@@ -1,0 +1,11 @@
+# Renaissance City - robots.txt
+# https://renaissance.city
+
+User-agent: *
+Allow: /
+
+# Disallow API routes
+Disallow: /api/
+
+# Sitemap location
+Sitemap: https://renaissance.city/sitemap.xml

@@ -1,6 +1,6 @@
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
-import Head from 'next/head';
+import { NextSeo } from 'next-seo';
 import Link from 'next/link';
 import { RegistryBrowser } from '@/components/app-blocks';
 
@@ -87,10 +87,14 @@ const BrowserSection = styled.section`
 export default function ExplorePage() {
   return (
     <>
-      <Head>
-        <title>Explore App Blocks | Renaissance City</title>
-        <meta name="description" content="Browse and discover App Blocks in the Renaissance City registry" />
-      </Head>
+      <NextSeo
+        title="Explore App Blocks"
+        description="Browse and discover App Blocks in the Renaissance City registry. Find tools, experiences, and communities built for Detroit."
+        openGraph={{
+          title: "Explore App Blocks | Renaissance City",
+          description: "Browse and discover App Blocks in the Renaissance City registry.",
+        }}
+      />
       
       <Container>
         <Main>

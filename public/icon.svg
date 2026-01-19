@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7C3AED;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#D4AF37;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="#0F0D13"/>
+  <g transform="translate(96, 96)">
+    <!-- Stylized R for Renaissance -->
+    <path d="M80 0v320M80 0h100c55.228 0 100 44.772 100 100s-44.772 100-100 100H80M180 200l100 120" 
+          stroke="url(#grad)" 
+          stroke-width="32" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"
+          fill="none"/>
+  </g>
+</svg>

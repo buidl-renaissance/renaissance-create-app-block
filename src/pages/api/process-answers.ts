@@ -1,13 +1,27 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import { Resend } from 'resend';
+import { getUserById } from '@/db/user';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const PRD_NOTIFICATION_EMAIL = 'john@thebarefoot.dev';
+const PRD_NOTIFICATION_EMAIL = 'john@builddetroit.xyz';
+
+/**
+ * Helper to get current user from session
+ */
+async function getCurrentUser(req: NextApiRequest) {
+  const cookies = req.headers.cookie || '';
+  const sessionMatch = cookies.match(/user_session=([^;]+)/);
+  
+  if (sessionMatch && sessionMatch[1]) {
+    return getUserById(sessionMatch[1]);
+  }
+  return null;
+}
 
 interface ProcessedAnswer {
   question: string;
@@ -73,9 +87,16 @@ async function sendPRDEmail(
   prd: ProductRequirementsDocument,
   summary: BlockSummary,
   blockType: string,
-  blockName: string
+  blockName: string,
+  userEmail?: string | null
 ): Promise<boolean> {
   try {
+    // Build recipient list - always include notification email, add user if they have email
+    const recipients = [PRD_NOTIFICATION_EMAIL];
+    if (userEmail && userEmail !== PRD_NOTIFICATION_EMAIL) {
+      recipients.push(userEmail);
+    }
+
     const emailHtml = `
 <!DOCTYPE html>
 <html>
@@ -189,7 +210,7 @@ async function sendPRDEmail(
 
     const { error } = await resend.emails.send({
       from: 'Renaissance City <john@builddetroit.xyz>',
-      to: [PRD_NOTIFICATION_EMAIL],
+      to: recipients,
       subject: `📋 PRD: ${prd.overview.name} (${blockType})`,
       html: emailHtml,
     });
@@ -199,7 +220,7 @@ async function sendPRDEmail(
       return false;
     }
 
-    console.log('✅ PRD email sent to', PRD_NOTIFICATION_EMAIL);
+    console.log('✅ PRD email sent to', recipients.join(', '));
     return true;
   } catch (err) {
     console.error('Error sending PRD email:', err);
@@ -214,6 +235,9 @@ export default async function handler(
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
+
+  // Get the current user (for email notifications)
+  const user = await getCurrentUser(req);
 
   const { transcript, questions, blockType, blockName, isFollowUp, previousAnswers, previousSummary } = req.body;
 
@@ -443,7 +467,8 @@ Return ONLY valid JSON, no markdown or explanation.`;
         parsed.prd,
         parsed.summary,
         blockType || 'App Block',
-        blockName || parsed.summary.name || 'Untitled'
+        blockName || parsed.summary.name || 'Untitled',
+        user?.email // Include user's email if available
       ).catch(err => {
         // Don't fail the request if email fails
         console.error('PRD email error (non-blocking):', err);

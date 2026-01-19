@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import Head from "next/head";
+import { NextSeo } from "next-seo";
 import styled, { keyframes } from "styled-components";
 import { useRouter } from "next/router";
 import Link from "next/link";
@@ -413,12 +413,12 @@ const DashboardPage: React.FC = () => {
 
   return (
     <Container>
-      <Head>
-        <title>Dashboard | {APP_NAME}</title>
-        <meta name="description" content={`Your ${APP_NAME} dashboard`} />
-        <link rel="icon" href="/favicon.ico" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      </Head>
+      <NextSeo
+        title="Dashboard"
+        description="Manage your App Blocks and build your corner of Detroit's digital renaissance."
+        noindex={true}
+        nofollow={true}
+      />
 
       <Main>
         <BlockImageContainer>

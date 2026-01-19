@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import Head from "next/head";
+import { NextSeo } from "next-seo";
 import styled, { keyframes } from "styled-components";
 import { useRouter } from "next/router";
 import { useUser } from "@/contexts/UserContext";
@@ -372,12 +372,14 @@ const GetStartedPage: React.FC = () => {
 
   return (
     <Container>
-      <Head>
-        <title>Get Started | {APP_NAME}</title>
-        <meta name="description" content={`Start building with ${APP_NAME}`} />
-        <link rel="icon" href="/favicon.ico" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      </Head>
+      <NextSeo
+        title="Claim Your Block"
+        description="Claim your block in Detroit's digital renaissance. Every block has a story—yours starts with a name."
+        openGraph={{
+          title: `Claim Your Block | ${APP_NAME}`,
+          description: "Claim your block in Detroit's digital renaissance. Every block has a story—yours starts with a name.",
+        }}
+      />
 
       <Main>
         {!isBlockClaimed ? (
@@ -388,7 +390,7 @@ const GetStartedPage: React.FC = () => {
             </BlockImageContainer>
 
         <ContentSection>
-              <BlockTitle>Name Your Block</BlockTitle>
+              <BlockTitle>Claim Your Block</BlockTitle>
               <Divider />
               <BlockText>
                 In Renaissance City, every block has a story.

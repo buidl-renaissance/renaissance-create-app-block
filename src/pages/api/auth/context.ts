@@ -36,19 +36,19 @@ export default async function handler(
 
     // Get or create local user by Renaissance ID
     const user = await getOrCreateUserByRenaissanceId(String(renaissanceUserId), {
-      renaissanceUserId: String(renaissanceUserId),
+      renaissanceId: String(renaissanceUserId),
       username: userData?.username,
       displayName: userData?.displayName,
       pfpUrl: userData?.pfpUrl,
       publicAddress: userData?.publicAddress,
     });
 
-    // Set session cookie
+    // Set session cookie using user ID
     res.setHeader('Set-Cookie', `user_session=${user.id}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`);
 
     console.log('✅ [AUTH-CONTEXT] User authenticated:', {
       userId: user.id,
-      renaissanceUserId: user.renaissanceUserId,
+      renaissanceUserId,
       username: user.username,
     });
 
@@ -56,11 +56,15 @@ export default async function handler(
       success: true,
       user: {
         id: user.id,
+        renaissanceId: user.renaissanceId,
         username: user.username,
+        name: user.name,
         displayName: user.displayName,
         pfpUrl: user.pfpUrl,
-        publicAddress: user.publicAddress,
-        peopleUserId: user.peopleUserId,
+        profilePicture: user.profilePicture,
+        accountAddress: user.accountAddress,
+        phone: user.phone,
+        role: user.role,
       },
     });
   } catch (error) {

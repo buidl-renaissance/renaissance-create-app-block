@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 
 interface SignInFormProps {
-  onSubmit: (phone: string) => void;
+  onSubmit: () => void;
+  onNeedsRegister?: () => void;
 }
 
 const Form = styled.form`
@@ -45,12 +46,6 @@ const Input = styled.input<{ $hasError?: boolean }>`
     box-shadow: 0 0 0 3px ${({ theme, $hasError }) => 
       $hasError ? `${theme.accent}20` : `${theme.accentGold}20`};
   }
-`;
-
-const ErrorText = styled.span`
-  font-family: 'Crimson Pro', Georgia, serif;
-  font-size: 0.85rem;
-  color: ${({ theme }) => theme.accent};
 `;
 
 const SubmitButton = styled.button<{ $loading?: boolean }>`
@@ -98,6 +93,17 @@ const GeneralError = styled.div`
   text-align: center;
 `;
 
+const SuccessMessage = styled.div`
+  padding: 0.75rem 1rem;
+  background: ${({ theme }) => `${theme.accentGold}10`};
+  border: 1px solid ${({ theme }) => `${theme.accentGold}30`};
+  border-radius: 8px;
+  color: ${({ theme }) => theme.accentGold};
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-size: 0.9rem;
+  text-align: center;
+`;
+
 const HelpText = styled.p`
   font-family: 'Crimson Pro', Georgia, serif;
   font-size: 0.9rem;
@@ -106,64 +112,78 @@ const HelpText = styled.p`
   margin-top: 0.5rem;
 `;
 
-// Phone number formatting
-const formatPhoneNumber = (value: string): string => {
-  const digits = value.replace(/\D/g, '');
-  if (digits.length <= 3) return digits;
-  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
-};
+const ResendLink = styled.button`
+  background: none;
+  border: none;
+  color: ${({ theme }) => theme.accent};
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  
+  &:hover {
+    opacity: 0.8;
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
 
-const unformatPhoneNumber = (value: string): string => {
-  return value.replace(/\D/g, '');
-};
-
-const SignInForm: React.FC<SignInFormProps> = ({ onSubmit }) => {
-  const [phone, setPhone] = useState('');
+const SignInForm: React.FC<SignInFormProps> = ({ onSubmit, onNeedsRegister }) => {
+  const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
+  const [step, setStep] = useState<'email' | 'code'>('email');
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhoneNumber(e.target.value);
-    setPhone(formatted);
-    setError(null);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const phoneDigits = unformatPhoneNumber(phone);
-    
-    if (!phoneDigits) {
-      setError('Phone number is required');
+    if (!email.trim()) {
+      setError('Email is required');
       return;
     }
     
-    if (phoneDigits.length !== 10) {
-      setError('Please enter a valid 10-digit phone number');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError('Please enter a valid email address');
       return;
     }
     
     setIsLoading(true);
     setError(null);
+    setMessage(null);
     
     try {
-      // Call API to send OTP
-      const response = await fetch('/api/auth/send-otp', {
+      // Send verification code to email
+      const response = await fetch('/api/auth/send-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: phoneDigits }),
+        body: JSON.stringify({ email: email.trim() }),
       });
       
       const data = await response.json();
+      
+      if (response.status === 404) {
+        // User not found - redirect to register
+        setError('No account found. Please create an account first.');
+        if (onNeedsRegister) {
+          onNeedsRegister();
+        }
+        return;
+      }
       
       if (!response.ok) {
         setError(data.error || 'Failed to send verification code');
         return;
       }
       
-      // Success - proceed to OTP verification
-      onSubmit(phoneDigits);
+      // Success - move to code verification step
+      setMessage(data.message || 'Verification code sent to your email');
+      setStep('code');
     } catch (error) {
       console.error('Sign in error:', error);
       setError('Something went wrong. Please try again.');
@@ -172,31 +192,137 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSubmit }) => {
     }
   };
 
+  const handleCodeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!code || code.length !== 6) {
+      setError('Please enter the 6-digit verification code');
+      return;
+    }
+    
+    setIsLoading(true);
+    setError(null);
+    setMessage(null);
+    
+    try {
+      const response = await fetch('/api/auth/verify-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), code }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        setError(data.error || 'Invalid verification code');
+        return;
+      }
+      
+      // Success - logged in
+      onSubmit();
+    } catch (error) {
+      console.error('Code verification error:', error);
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    setIsLoading(true);
+    setError(null);
+    setMessage(null);
+    
+    try {
+      const response = await fetch('/api/auth/send-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        setError(data.error || 'Failed to resend code');
+        return;
+      }
+      
+      setMessage(data.message || 'New verification code sent');
+    } catch (error) {
+      console.error('Resend error:', error);
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (step === 'code') {
+    return (
+      <Form onSubmit={handleCodeSubmit}>
+        {error && <GeneralError>{error}</GeneralError>}
+        {message && <SuccessMessage>{message}</SuccessMessage>}
+        
+        <InputGroup>
+          <Label htmlFor="signin-code">Verification Code</Label>
+          <Input
+            id="signin-code"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={6}
+            value={code}
+            onChange={(e) => {
+              setCode(e.target.value.replace(/\D/g, '').slice(0, 6));
+              setError(null);
+            }}
+            placeholder="123456"
+            $hasError={!!error}
+            autoComplete="one-time-code"
+            autoFocus
+          />
+        </InputGroup>
+        
+        <SubmitButton type="submit" disabled={isLoading} $loading={isLoading}>
+          {isLoading ? 'Verifying...' : 'Sign In'}
+        </SubmitButton>
+        
+        <HelpText>
+          Check your email for a 6-digit code.{' '}
+          <ResendLink type="button" onClick={handleResendCode} disabled={isLoading}>
+            Resend code
+          </ResendLink>
+        </HelpText>
+      </Form>
+    );
+  }
+
   return (
-    <Form onSubmit={handleSubmit}>
+    <Form onSubmit={handleEmailSubmit}>
       {error && <GeneralError>{error}</GeneralError>}
       
       <InputGroup>
-        <Label htmlFor="signin-phone">Phone Number</Label>
+        <Label htmlFor="signin-email">Email</Label>
         <Input
-          id="signin-phone"
-          type="tel"
-          value={phone}
-          onChange={handlePhoneChange}
-          placeholder="(555) 123-4567"
+          id="signin-email"
+          type="email"
+          value={email}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            setError(null);
+          }}
+          placeholder="you@example.com"
           $hasError={!!error}
-          autoComplete="tel"
+          autoComplete="email"
           autoFocus
         />
-        {error && <ErrorText>{error}</ErrorText>}
       </InputGroup>
       
       <SubmitButton type="submit" disabled={isLoading} $loading={isLoading}>
-        {isLoading ? 'Sending Code...' : 'Send Verification Code'}
+        {isLoading ? 'Sending Code...' : 'Continue'}
       </SubmitButton>
       
       <HelpText>
-        We&apos;ll send a verification code to your phone
+        We&apos;ll send a verification code to your email
       </HelpText>
     </Form>
   );

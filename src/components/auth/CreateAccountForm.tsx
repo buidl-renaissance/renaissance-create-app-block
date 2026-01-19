@@ -2,19 +2,14 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 
 interface CreateAccountFormProps {
-  onSubmit: (data: {
-    username: string;
-    name: string;
-    phone: string;
-    email?: string;
-  }) => void;
+  onSubmit: () => void;
 }
 
 interface FormErrors {
   username?: string;
   name?: string;
-  phone?: string;
   email?: string;
+  phone?: string;
   general?: string;
 }
 
@@ -132,8 +127,8 @@ const unformatPhoneNumber = (value: string): string => {
 const CreateAccountForm: React.FC<CreateAccountFormProps> = ({ onSubmit }) => {
   const [username, setUsername] = useState('');
   const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
 
@@ -156,17 +151,17 @@ const CreateAccountForm: React.FC<CreateAccountFormProps> = ({ onSubmit }) => {
       newErrors.name = 'Name must be at least 2 characters';
     }
     
-    // Phone validation
-    const phoneDigits = unformatPhoneNumber(phone);
-    if (!phoneDigits) {
-      newErrors.phone = 'Phone number is required';
-    } else if (phoneDigits.length !== 10) {
-      newErrors.phone = 'Please enter a valid 10-digit phone number';
+    // Email validation (required)
+    if (!email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = 'Please enter a valid email address';
     }
     
-    // Email validation (optional but must be valid if provided)
-    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      newErrors.email = 'Please enter a valid email address';
+    // Phone validation (optional but must be valid if provided)
+    const phoneDigits = unformatPhoneNumber(phone);
+    if (phoneDigits && phoneDigits.length !== 10) {
+      newErrors.phone = 'Please enter a valid 10-digit phone number';
     }
     
     setErrors(newErrors);
@@ -189,15 +184,15 @@ const CreateAccountForm: React.FC<CreateAccountFormProps> = ({ onSubmit }) => {
     try {
       const phoneDigits = unformatPhoneNumber(phone);
       
-      // Call API to create account and send OTP
-      const response = await fetch('/api/auth/create', {
+      // Call API to register account
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: username.trim(),
           name: name.trim(),
-          phone: phoneDigits,
-          email: email.trim() || undefined,
+          email: email.trim(),
+          phone: phoneDigits || undefined,
         }),
       });
       
@@ -212,13 +207,8 @@ const CreateAccountForm: React.FC<CreateAccountFormProps> = ({ onSubmit }) => {
         return;
       }
       
-      // Success - proceed to OTP verification
-      onSubmit({
-        username: username.trim(),
-        name: name.trim(),
-        phone: phoneDigits,
-        email: email.trim() || undefined,
-      });
+      // Success - account created and logged in
+      onSubmit();
     } catch (error) {
       console.error('Create account error:', error);
       setErrors({ general: 'Something went wrong. Please try again.' });
@@ -261,23 +251,7 @@ const CreateAccountForm: React.FC<CreateAccountFormProps> = ({ onSubmit }) => {
       </InputGroup>
       
       <InputGroup>
-        <Label htmlFor="phone">Phone Number</Label>
-        <Input
-          id="phone"
-          type="tel"
-          value={phone}
-          onChange={handlePhoneChange}
-          placeholder="(555) 123-4567"
-          $hasError={!!errors.phone}
-          autoComplete="tel"
-        />
-        {errors.phone && <ErrorText>{errors.phone}</ErrorText>}
-      </InputGroup>
-      
-      <InputGroup>
-        <Label htmlFor="email">
-          Email <span>(optional)</span>
-        </Label>
+        <Label htmlFor="email">Email</Label>
         <Input
           id="email"
           type="email"
@@ -288,6 +262,22 @@ const CreateAccountForm: React.FC<CreateAccountFormProps> = ({ onSubmit }) => {
           autoComplete="email"
         />
         {errors.email && <ErrorText>{errors.email}</ErrorText>}
+      </InputGroup>
+      
+      <InputGroup>
+        <Label htmlFor="phone">
+          Phone Number <span>(optional)</span>
+        </Label>
+        <Input
+          id="phone"
+          type="tel"
+          value={phone}
+          onChange={handlePhoneChange}
+          placeholder="(555) 123-4567"
+          $hasError={!!errors.phone}
+          autoComplete="tel"
+        />
+        {errors.phone && <ErrorText>{errors.phone}</ErrorText>}
       </InputGroup>
       
       <SubmitButton type="submit" disabled={isLoading} $loading={isLoading}>

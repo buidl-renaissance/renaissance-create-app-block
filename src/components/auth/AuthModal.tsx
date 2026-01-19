@@ -3,25 +3,14 @@ import styled, { keyframes } from 'styled-components';
 import { User } from '@/db/user';
 import CreateAccountForm from './CreateAccountForm';
 import SignInForm from './SignInForm';
-import OTPVerification from './OTPVerification';
 
-export type AuthView = 'create' | 'signin' | 'otp';
+export type AuthView = 'create' | 'signin';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: (user: User) => void;
   defaultView?: 'create' | 'signin';
-}
-
-interface PendingAuth {
-  phone: string;
-  isNewAccount: boolean;
-  userData?: {
-    username: string;
-    name: string;
-    email?: string;
-  };
 }
 
 const fadeIn = keyframes`
@@ -158,13 +147,11 @@ const AuthModal: React.FC<AuthModalProps> = ({
   defaultView = 'create'
 }) => {
   const [view, setView] = useState<AuthView>(defaultView);
-  const [pendingAuth, setPendingAuth] = useState<PendingAuth | null>(null);
 
   // Reset state when modal opens/closes
   useEffect(() => {
     if (isOpen) {
       setView(defaultView);
-      setPendingAuth(null);
     }
   }, [isOpen, defaultView]);
 
@@ -179,41 +166,42 @@ const AuthModal: React.FC<AuthModalProps> = ({
     return () => window.removeEventListener('keydown', handleEscape);
   }, [isOpen, onClose]);
 
-  const handleCreateSubmit = useCallback((data: {
-    username: string;
-    name: string;
-    phone: string;
-    email?: string;
-  }) => {
-    setPendingAuth({
-      phone: data.phone,
-      isNewAccount: true,
-      userData: {
-        username: data.username,
-        name: data.name,
-        email: data.email,
-      }
-    });
-    setView('otp');
-  }, []);
-
-  const handleSignInSubmit = useCallback((phone: string) => {
-    setPendingAuth({
-      phone,
-      isNewAccount: false,
-    });
-    setView('otp');
-  }, []);
-
-  const handleOTPSuccess = useCallback((user: User) => {
-    onSuccess?.(user);
-    onClose();
+  // Registration now logs in directly (no OTP step)
+  const handleCreateSubmit = useCallback(() => {
+    // Fetch the current user from /api/user/me since registration sets the session
+    fetch('/api/user/me')
+      .then(res => res.json())
+      .then(data => {
+        if (data.user) {
+          onSuccess?.(data.user);
+        }
+        onClose();
+      })
+      .catch(() => {
+        onClose();
+      });
   }, [onSuccess, onClose]);
 
-  const handleBackToForm = useCallback(() => {
-    setView(pendingAuth?.isNewAccount ? 'create' : 'signin');
-    setPendingAuth(null);
-  }, [pendingAuth]);
+  // Sign in with email verification - called when verification is complete
+  const handleSignInSubmit = useCallback(() => {
+    // Fetch the current user from /api/user/me since sign-in sets the session
+    fetch('/api/user/me')
+      .then(res => res.json())
+      .then(data => {
+        if (data.user) {
+          onSuccess?.(data.user);
+        }
+        onClose();
+      })
+      .catch(() => {
+        onClose();
+      });
+  }, [onSuccess, onClose]);
+
+  // Switch to create account view
+  const handleNeedsRegister = useCallback(() => {
+    setView('create');
+  }, []);
 
   if (!isOpen) return null;
 
@@ -223,8 +211,6 @@ const AuthModal: React.FC<AuthModalProps> = ({
         return 'Join the Renaissance';
       case 'signin':
         return 'Welcome Back';
-      case 'otp':
-        return 'Verify Your Phone';
       default:
         return '';
     }
@@ -236,8 +222,6 @@ const AuthModal: React.FC<AuthModalProps> = ({
         return 'Create your account to start building';
       case 'signin':
         return 'Sign in to continue building';
-      case 'otp':
-        return `Enter the code sent to ${pendingAuth?.phone}`;
       default:
         return '';
     }
@@ -256,37 +240,29 @@ const AuthModal: React.FC<AuthModalProps> = ({
           <GoldBar />
         </Header>
 
-        {view !== 'otp' && (
-          <TabContainer>
-            <Tab
-              $active={view === 'create'}
-              onClick={() => setView('create')}
-            >
-              Create Account
-            </Tab>
-            <Tab
-              $active={view === 'signin'}
-              onClick={() => setView('signin')}
-            >
-              Sign In
-            </Tab>
-          </TabContainer>
-        )}
+        <TabContainer>
+          <Tab
+            $active={view === 'create'}
+            onClick={() => setView('create')}
+          >
+            Create Account
+          </Tab>
+          <Tab
+            $active={view === 'signin'}
+            onClick={() => setView('signin')}
+          >
+            Sign In
+          </Tab>
+        </TabContainer>
 
         <Content>
           {view === 'create' && (
             <CreateAccountForm onSubmit={handleCreateSubmit} />
           )}
           {view === 'signin' && (
-            <SignInForm onSubmit={handleSignInSubmit} />
-          )}
-          {view === 'otp' && pendingAuth && (
-            <OTPVerification
-              phone={pendingAuth.phone}
-              isNewAccount={pendingAuth.isNewAccount}
-              userData={pendingAuth.userData}
-              onSuccess={handleOTPSuccess}
-              onBack={handleBackToForm}
+            <SignInForm 
+              onSubmit={handleSignInSubmit} 
+              onNeedsRegister={handleNeedsRegister}
             />
           )}
         </Content>

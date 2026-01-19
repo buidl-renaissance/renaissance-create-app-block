@@ -1,14 +1,16 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { User } from '@/db/user';
-import { clearStoredWallet } from '@/lib/embeddedWallet';
 
 interface UserContextType {
   user: User | null;
   isLoading: boolean;
   error: string | null;
+  needsPhone: boolean;
   setUser: (user: User | null) => void;
   signOut: () => void;
   refreshUser: () => Promise<void>;
+  updateUser: (updatedUser: Partial<User>) => void;
+  setNeedsPhone: (value: boolean) => void;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -19,12 +21,14 @@ const USER_STORAGE_KEY = 'renaissance_app_user';
 interface RenaissanceContext {
   isAuthenticated?: boolean;
   renaissanceUserId?: number;
+  fid?: number; // Legacy support
   user?: {
     username?: string;
     displayName?: string;
     pfpUrl?: string;
     publicAddress?: string;
     renaissanceUserId?: number;
+    fid?: number;
   };
 }
 
@@ -34,6 +38,7 @@ declare global {
     RenaissanceContext?: RenaissanceContext;
     renaissanceContext?: RenaissanceContext;
     __RENAISSANCE_CONTEXT__?: RenaissanceContext;
+    __renaissanceAuthContext?: RenaissanceContext;
     ReactNativeWebView?: {
       postMessage: (message: string) => void;
     };
@@ -54,13 +59,6 @@ if (typeof window !== 'undefined') {
       contextCallback(ctx);
     }
   };
-}
-
-// Extend Window interface for injected context from Renaissance native app
-declare global {
-  interface Window {
-    __renaissanceAuthContext?: RenaissanceContext;
-  }
 }
 
 // Helper to get Renaissance context from various sources
@@ -146,6 +144,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(() => getStoredUser());
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [needsPhone, setNeedsPhone] = useState<boolean>(false);
   const authAttemptedRef = useRef(false);
   const userRef = useRef<User | null>(user);
   
@@ -159,12 +158,12 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     storeUser(user);
   }, [user]);
 
-  // Sign out function - clears user, session, and embedded wallet
+  // Sign out function - clears user and session
   const signOut = useCallback(() => {
     console.log('🚪 Signing out user');
     setUser(null);
     storeUser(null);
-    clearStoredWallet();
+    setNeedsPhone(false);
     authAttemptedRef.current = false;
     // Clear session cookie by setting expired cookie
     document.cookie = 'user_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT';
@@ -180,11 +179,17 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (data.user) {
           console.log('✅ User refreshed:', data.user);
           setUser(data.user);
+          setNeedsPhone(!data.user.phone);
         }
       }
     } catch (err) {
       console.error('❌ Error refreshing user:', err);
     }
+  }, []);
+
+  // Function to update user data locally
+  const updateUser = useCallback((updatedUser: Partial<User>) => {
+    setUser(prev => prev ? { ...prev, ...updatedUser } : null);
   }, []);
 
   // Authenticate from Renaissance context
@@ -216,6 +221,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await response.json();
       if (data.success && data.user) {
         console.log('✅ Authenticated from context:', data.user);
+        setNeedsPhone(!data.user.phone);
         return data.user;
       }
       return null;
@@ -267,6 +273,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (data.user && mounted) {
             console.log('✅ User found from API:', data.user.id);
             setUser(data.user);
+            setNeedsPhone(!data.user.phone);
             setIsLoading(false);
             return;
           }
@@ -327,6 +334,21 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
         
+        // Handle farcaster:context:ready message from Renaissance native app
+        if (data?.type === 'farcaster:context:ready' && data?.context) {
+          console.log('📱 Received context via postMessage (farcaster:context:ready)');
+          // Extract renaissanceUserId from context.user if not at top level
+          const ctx: RenaissanceContext = {
+            isAuthenticated: data.authenticated || true,
+            renaissanceUserId: data.context?.renaissanceUserId || data.context?.user?.renaissanceUserId,
+            user: data.context?.user,
+          };
+          const contextUser = await authenticateFromContext(ctx);
+          if (contextUser) {
+            setUser(contextUser);
+          }
+        }
+        
         // Also check for direct context data (some apps send the context directly)
         if (data?.renaissanceUserId || data?.user?.renaissanceUserId) {
           console.log('📱 Received direct context via postMessage');
@@ -354,6 +376,47 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
     document.addEventListener('renaissanceContext', handleDocMessage);
+    
+    // Listen for farcaster:context:ready CustomEvent from Renaissance native app
+    const handleFarcasterContextReady = async (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const detail = customEvent.detail;
+      console.log('📱 Received farcaster:context:ready CustomEvent:', detail);
+      
+      if (detail?.user?.renaissanceUserId || detail?.renaissanceUserId) {
+        const ctx: RenaissanceContext = {
+          isAuthenticated: true,
+          renaissanceUserId: detail.renaissanceUserId || detail.user?.renaissanceUserId,
+          user: detail.user,
+        };
+        const contextUser = await authenticateFromContext(ctx);
+        if (contextUser) {
+          setUser(contextUser);
+        }
+      }
+    };
+    window.addEventListener('farcaster:context:ready', handleFarcasterContextReady);
+    
+    // Listen for farcaster:context:updated CustomEvent (auth state changes)
+    const handleFarcasterContextUpdated = async (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const detail = customEvent.detail;
+      console.log('📱 Received farcaster:context:updated CustomEvent:', detail);
+      
+      const context = detail?.context;
+      if (context?.user?.renaissanceUserId || context?.renaissanceUserId) {
+        const ctx: RenaissanceContext = {
+          isAuthenticated: detail.authenticated || true,
+          renaissanceUserId: context.renaissanceUserId || context.user?.renaissanceUserId,
+          user: context.user,
+        };
+        const contextUser = await authenticateFromContext(ctx);
+        if (contextUser) {
+          setUser(contextUser);
+        }
+      }
+    };
+    window.addEventListener('farcaster:context:updated', handleFarcasterContextUpdated);
     
     // Register callback for global setRenaissanceContext function
     contextCallback = async (ctx: RenaissanceContext) => {
@@ -390,13 +453,15 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       mounted = false;
       window.removeEventListener('message', handleMessage);
       document.removeEventListener('renaissanceContext', handleDocMessage);
+      window.removeEventListener('farcaster:context:ready', handleFarcasterContextReady);
+      window.removeEventListener('farcaster:context:updated', handleFarcasterContextUpdated);
       contextCallback = null;
       clearInterval(checkInterval);
     };
   }, [authenticateFromContext]);
 
   return (
-    <UserContext.Provider value={{ user, isLoading, error, setUser, signOut, refreshUser }}>
+    <UserContext.Provider value={{ user, isLoading, error, needsPhone, setUser, signOut, refreshUser, updateUser, setNeedsPhone }}>
       {children}
     </UserContext.Provider>
   );

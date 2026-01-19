@@ -11,6 +11,11 @@ declare module 'styled-components' {
     surface: string;
     accent: string;
     accentGold: string;
+    accentMuted: string;
+    accentHover: string;
+    danger: string;
+    dangerMuted: string;
+    success: string;
     shadow: string;
     overlay: string;
     glow: string;
@@ -30,6 +35,11 @@ export const lightTheme: DefaultTheme = {
   surface: '#FFFFFF',
   accent: '#8B5CF6',           // Violet
   accentGold: '#D946EF',       // Magenta/fuchsia
+  accentMuted: 'rgba(139, 92, 246, 0.1)',
+  accentHover: '#7C3AED',      // Darker violet
+  danger: '#EF4444',           // Red
+  dangerMuted: 'rgba(239, 68, 68, 0.1)',
+  success: '#22C55E',          // Green
   shadow: 'rgba(139, 92, 246, 0.15)',
   overlay: 'rgba(26, 22, 37, 0.6)',
   glow: 'rgba(139, 92, 246, 0.5)',
@@ -48,6 +58,11 @@ export const darkTheme: DefaultTheme = {
   surface: '#12121A',          // Dark surface
   accent: '#A78BFA',           // Soft violet
   accentGold: '#E879F9',       // Bright magenta
+  accentMuted: 'rgba(167, 139, 250, 0.15)',
+  accentHover: '#C4B5FD',      // Lighter violet
+  danger: '#F87171',           // Softer red for dark mode
+  dangerMuted: 'rgba(248, 113, 113, 0.15)',
+  success: '#4ADE80',          // Softer green for dark mode
   shadow: 'rgba(0, 0, 0, 0.5)',
   overlay: 'rgba(0, 0, 0, 0.8)',
   glow: 'rgba(167, 139, 250, 0.4)',

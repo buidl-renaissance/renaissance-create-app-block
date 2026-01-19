@@ -135,11 +135,11 @@ const Input = styled.input<{ $readOnly?: boolean }>`
   &:focus {
     outline: none;
     border-color: ${({ theme }) => theme.accent};
-    box-shadow: 0 0 10px ${({ theme }) => theme.accentGlow};
+    box-shadow: 0 0 10px ${({ theme }) => theme.glow};
   }
   
   &::placeholder {
-    color: ${({ theme }) => theme.textMuted};
+    color: ${({ theme }) => theme.textSecondary};
   }
   
   &:read-only {
@@ -164,7 +164,7 @@ const SubmitButton = styled.button<{ $loading?: boolean }>`
   &:hover:not(:disabled) {
     background: ${({ theme }) => theme.accentHover};
     transform: translateY(-2px);
-    box-shadow: 0 4px 20px ${({ theme }) => theme.accentGlow};
+    box-shadow: 0 4px 20px ${({ theme }) => theme.glow};
   }
   
   &:disabled {
@@ -174,7 +174,7 @@ const SubmitButton = styled.button<{ $loading?: boolean }>`
 `;
 
 const ErrorMessage = styled.div`
-  background: rgba(239, 68, 68, 0.1);
+  background: ${({ theme }) => theme.dangerMuted};
   border: 1px solid ${({ theme }) => theme.danger};
   border-radius: 8px;
   padding: 0.75rem 1rem;

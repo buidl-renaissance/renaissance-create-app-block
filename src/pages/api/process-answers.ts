@@ -163,7 +163,7 @@ async function sendPRDEmail(
         `).join('')}
         ${prd.features.future.length > 0 ? `
           <p style="margin: 12px 0 0 0; font-size: 13px; color: #6b7280;">
-            <strong>Future Ideas:</strong> ${prd.features.future.join(' • ')}
+            <strong>Future Ideas:</strong> ${prd.features.future.map(f => typeof f === 'string' ? f : (f as { name?: string }).name || JSON.stringify(f)).join(' • ')}
           </p>
         ` : ''}
       </div>

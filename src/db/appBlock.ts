@@ -22,6 +22,7 @@ import {
   AuthType,
   AppBlockStatus,
   OnboardingStage,
+  RenAIConfig,
 } from './schema';
 
 // ============================================
@@ -568,6 +569,73 @@ export async function cleanupExpiredTokens(): Promise<number> {
   const result = await db.delete(accessTokens)
     .where(eq(accessTokens.expiresAt, new Date()));
   return result.rowsAffected;
+}
+
+// ============================================
+// Ren.AI Configuration Operations
+// ============================================
+
+/**
+ * Get Ren.AI configuration for an app block
+ */
+export async function getRenAIConfig(appBlockId: string): Promise<RenAIConfig | null> {
+  const appBlock = await getAppBlockById(appBlockId);
+  if (!appBlock) return null;
+  
+  return {
+    repoOwner: appBlock.githubRepoOwner,
+    repoName: appBlock.githubRepoName,
+    workflowFile: appBlock.githubWorkflowFile,
+    branch: appBlock.githubBranch,
+  };
+}
+
+/**
+ * Build repository path from config (for Ren.AI API calls)
+ */
+export function buildRepositoryPath(config: RenAIConfig): string | null {
+  if (!config.repoOwner || !config.repoName) return null;
+  return `./repos/${config.repoName}`;
+}
+
+/**
+ * Update Ren.AI configuration for an app block
+ */
+export async function updateRenAIConfig(
+  appBlockId: string,
+  config: Partial<RenAIConfig>
+): Promise<AppBlock | null> {
+  const db = getDb();
+  
+  const updateData: Record<string, unknown> = {
+    updatedAt: new Date(),
+  };
+  
+  if (config.repoOwner !== undefined) {
+    updateData.githubRepoOwner = config.repoOwner;
+  }
+  if (config.repoName !== undefined) {
+    updateData.githubRepoName = config.repoName;
+  }
+  if (config.workflowFile !== undefined) {
+    updateData.githubWorkflowFile = config.workflowFile;
+  }
+  if (config.branch !== undefined) {
+    updateData.githubBranch = config.branch;
+  }
+  
+  await db.update(appBlocks)
+    .set(updateData)
+    .where(eq(appBlocks.id, appBlockId));
+  
+  return getAppBlockById(appBlockId);
+}
+
+/**
+ * Check if an app block has Ren.AI configured
+ */
+export function hasRenAIConfigured(appBlock: AppBlock): boolean {
+  return !!appBlock.githubRepoOwner && !!appBlock.githubRepoName;
 }
 
 // ============================================

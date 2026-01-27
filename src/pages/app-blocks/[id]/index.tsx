@@ -6,7 +6,8 @@ import Link from 'next/link';
 import { useUser } from '@/contexts/UserContext';
 import { useAppBlock, AppBlockWithInstallations } from '@/contexts/AppBlockContext';
 import { Loading } from '@/components/Loading';
-import { BlockInstallations, IconEditModal } from '@/components/app-blocks';
+import { BlockInstallations, IconEditModal, RenAISettings, WorkflowActions } from '@/components/app-blocks';
+import { RenAIConfig } from '@/db/schema';
 
 const fadeIn = keyframes`
   from {
@@ -683,6 +684,52 @@ const ConnectButton = styled(Link)`
   }
 `;
 
+const RenAISection = styled(Section)`
+  animation: ${fadeIn} 0.4s ease-out 0.15s both;
+`;
+
+const SectionSubtitle = styled.p`
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-size: 0.9rem;
+  color: ${({ theme }) => theme.textSecondary};
+  margin: -0.5rem 0 1rem 0;
+  line-height: 1.5;
+`;
+
+const ConfigureButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  background: ${({ theme }) => theme.backgroundAlt};
+  border: 1px solid ${({ theme }) => theme.border};
+  border-radius: 8px;
+  color: ${({ theme }) => theme.text};
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    border-color: ${({ theme }) => theme.accent};
+    color: ${({ theme }) => theme.accent};
+  }
+`;
+
+const NotConfiguredMessage = styled.div`
+  text-align: center;
+  padding: 1.5rem 1rem;
+  background: ${({ theme }) => theme.backgroundAlt};
+  border-radius: 12px;
+`;
+
+const NotConfiguredText = styled.p`
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-size: 0.95rem;
+  color: ${({ theme }) => theme.textSecondary};
+  margin: 0 0 1rem 0;
+`;
+
 const DISTRICT_APPS = [
   {
     id: 'events',
@@ -726,6 +773,10 @@ const AppBlockDetailPage: React.FC = () => {
   const [appUrl, setAppUrl] = useState('');
   const [isSavingUrls, setIsSavingUrls] = useState(false);
   const [urlError, setUrlError] = useState<string | null>(null);
+  
+  // Ren.AI settings state
+  const [showRenAISettings, setShowRenAISettings] = useState(false);
+  const [renaiConfig, setRenaiConfig] = useState<RenAIConfig | null>(null);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -738,6 +789,24 @@ const AppBlockDetailPage: React.FC = () => {
       setIsLoading(true);
       fetchAppBlock(id).then((block) => {
         setAppBlock(block);
+        
+        // Extract Ren.AI config
+        if (block) {
+          // Access Ren.AI config from the block - need to cast since the type might not include these new fields yet
+          const blockWithRenAI = block as AppBlockWithInstallations & {
+            githubRepoOwner?: string | null;
+            githubRepoName?: string | null;
+            githubWorkflowFile?: string | null;
+            githubBranch?: string | null;
+          };
+          
+          setRenaiConfig({
+            repoOwner: blockWithRenAI.githubRepoOwner || null,
+            repoName: blockWithRenAI.githubRepoName || null,
+            workflowFile: blockWithRenAI.githubWorkflowFile || null,
+            branch: blockWithRenAI.githubBranch || null,
+          });
+        }
         
         // Check if block needs onboarding and extract PRD data
         if (block && block.onboardingData) {
@@ -994,6 +1063,48 @@ const AppBlockDetailPage: React.FC = () => {
             showBrowseLink={false}
           />
         </Section>
+
+        <RenAISection>
+          <SectionHeader>
+            <SectionTitle>Ren.AI Automation</SectionTitle>
+            {renaiConfig?.repoOwner && renaiConfig?.repoName && (
+              <ConfigureButton 
+                type="button" 
+                onClick={() => setShowRenAISettings(!showRenAISettings)}
+              >
+                {showRenAISettings ? 'Hide Settings' : 'Settings'}
+              </ConfigureButton>
+            )}
+          </SectionHeader>
+          <SectionSubtitle>
+            Trigger automated code changes to update your repository based on your PRD.
+          </SectionSubtitle>
+          
+          {showRenAISettings ? (
+            <RenAISettings
+              appBlockId={appBlock.id}
+              existingConfig={renaiConfig}
+              onSave={(newConfig) => {
+                setRenaiConfig(newConfig);
+                setShowRenAISettings(false);
+              }}
+            />
+          ) : renaiConfig?.repoOwner && renaiConfig?.repoName ? (
+            <WorkflowActions
+              appBlockId={appBlock.id}
+              disabled={!prdData}
+            />
+          ) : (
+            <NotConfiguredMessage>
+              <NotConfiguredText>
+                Connect a repository to enable automated code changes.
+              </NotConfiguredText>
+              <ConfigureButton type="button" onClick={() => setShowRenAISettings(true)}>
+                Configure Repository
+              </ConfigureButton>
+            </NotConfiguredMessage>
+          )}
+        </RenAISection>
 
         <DangerSection>
           <DangerTitle>Danger Zone</DangerTitle>

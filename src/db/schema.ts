@@ -50,6 +50,11 @@ export const appBlocks = sqliteTable('app_blocks', {
   blockType: text('block_type'), // creator, community, project, business, game, unsure
   onboardingStage: text('onboarding_stage').default('questions'), // questions, followup, document, connectors, complete
   onboardingData: text('onboarding_data'), // JSON: { summary, processedAnswers, followUpQuestions, followUpAnswers, prd }
+  // Ren.AI integration for automated code changes
+  githubRepoOwner: text('github_repo_owner'),
+  githubRepoName: text('github_repo_name'),
+  githubWorkflowFile: text('github_workflow_file'),
+  githubBranch: text('github_branch').default('main'),
   createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
 });
@@ -267,3 +272,39 @@ export type NewPendingAppBlock = typeof pendingAppBlocks.$inferInsert;
 
 // Pending block status type
 export type PendingBlockStatus = 'pending' | 'approved' | 'rejected' | 'building' | 'completed';
+
+// Ren.AI configuration type for automated code changes
+export interface RenAIConfig {
+  repoOwner: string | null;
+  repoName: string | null;
+  workflowFile: string | null;
+  branch: string | null;
+}
+
+// Workflow dispatch intent types
+export type WorkflowIntent = 'branding' | 'features' | 'config' | 'full_build' | 'custom';
+
+// ============================================
+// Block Submissions Table (Public)
+// ============================================
+
+// Block Submissions - public submissions from external users wanting to create blocks
+export const blockSubmissions = sqliteTable('block_submissions', {
+  id: text('id').primaryKey(),
+  blockName: text('block_name').notNull(),
+  submitterName: text('submitter_name').notNull(),
+  email: text('email').notNull(),
+  projectDescription: text('project_description').notNull(),
+  projectUrl: text('project_url').notNull(),
+  iconUrl: text('icon_url'), // optional icon/image for the block
+  status: text('status').notNull().default('pending'), // pending, reviewed, approved, rejected
+  adminNotes: text('admin_notes'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
+});
+
+export type BlockSubmission = typeof blockSubmissions.$inferSelect;
+export type NewBlockSubmission = typeof blockSubmissions.$inferInsert;
+
+// Block submission status type
+export type BlockSubmissionStatus = 'pending' | 'reviewed' | 'approved' | 'rejected';

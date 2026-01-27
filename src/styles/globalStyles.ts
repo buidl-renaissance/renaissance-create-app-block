@@ -44,8 +44,9 @@ export const GlobalStyle = createGlobalStyle`
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   }
 
-  input, textarea {
+  input, textarea, select {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 16px; /* Prevents iOS zoom on focus */
   }
 
   ::selection {

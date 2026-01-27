@@ -7,6 +7,7 @@ import {
   getInstallationsWithConnectors,
   getServiceAccountByAppBlock,
   rotateServiceAccountKey,
+  updateRenAIConfig,
 } from '@/db/appBlock';
 import { AppBlock, ConnectorInstallation, Connector } from '@/db/schema';
 
@@ -88,10 +89,22 @@ export default async function handler(
       }
 
       case 'PUT': {
-        const { name, description, iconUrl } = req.body as {
+        const { 
+          name, 
+          description, 
+          iconUrl,
+          githubRepoOwner,
+          githubRepoName,
+          githubWorkflowFile,
+          githubBranch,
+        } = req.body as {
           name?: string;
           description?: string;
           iconUrl?: string;
+          githubRepoOwner?: string | null;
+          githubRepoName?: string | null;
+          githubWorkflowFile?: string | null;
+          githubBranch?: string | null;
         };
 
         const updateData: Partial<{ name: string; description: string; iconUrl: string }> = {};
@@ -114,11 +127,33 @@ export default async function handler(
           updateData.iconUrl = iconUrl || undefined;
         }
 
-        const updatedAppBlock = await updateAppBlock(id, updateData);
+        // Update basic fields
+        let updatedAppBlock = await updateAppBlock(id, updateData);
+
+        // Update Ren.AI config if any Ren.AI fields are provided
+        if (
+          githubRepoOwner !== undefined ||
+          githubRepoName !== undefined ||
+          githubWorkflowFile !== undefined ||
+          githubBranch !== undefined
+        ) {
+          updatedAppBlock = await updateRenAIConfig(id, {
+            repoOwner: githubRepoOwner,
+            repoName: githubRepoName,
+            workflowFile: githubWorkflowFile,
+            branch: githubBranch,
+          });
+        }
 
         console.log('✅ [PUT /api/app-blocks/[id]] Updated App Block:', {
           id,
-          updates: updateData,
+          updates: {
+            ...updateData,
+            ...(githubRepoOwner !== undefined && { githubRepoOwner }),
+            ...(githubRepoName !== undefined && { githubRepoName }),
+            ...(githubWorkflowFile !== undefined && { githubWorkflowFile }),
+            ...(githubBranch !== undefined && { githubBranch }),
+          },
         });
 
         return res.status(200).json({ appBlock: updatedAppBlock! });

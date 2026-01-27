@@ -511,7 +511,7 @@ const PRDPage: React.FC = () => {
         <PRDCard>
           <PRDHeader>
             <PRDTitle>{prd.title}</PRDTitle>
-            {prd.overview.tagline && (
+            {prd.overview?.tagline && (
               <PRDTagline>{prd.overview.tagline}</PRDTagline>
             )}
             <PRDMeta>Version {prd.version} • {prd.createdAt}</PRDMeta>
@@ -521,40 +521,40 @@ const PRDPage: React.FC = () => {
             <Section>
               <SectionTitle>Overview</SectionTitle>
               <SectionContent style={{ marginBottom: '0.5rem' }}>
-                <strong>Problem:</strong> {prd.overview.problemStatement}
+                <strong>Problem:</strong> {prd.overview?.problemStatement}
               </SectionContent>
-              <SectionContent>{prd.overview.description}</SectionContent>
+              <SectionContent>{prd.overview?.description}</SectionContent>
             </Section>
 
             <Section>
               <SectionTitle>Target Audience</SectionTitle>
               <SectionContent style={{ marginBottom: '0.5rem' }}>
-                <strong>Primary:</strong> {prd.targetAudience.primary}
+                <strong>Primary:</strong> {prd.targetAudience?.primary}
               </SectionContent>
               <KeyPoints style={{ marginBottom: '0.5rem' }}>
-                {prd.targetAudience.demographics.map((d, i) => (
+                {Array.isArray(prd.targetAudience?.demographics) && prd.targetAudience.demographics.map((d, i) => (
                   <KeyPoint key={i}>{d}</KeyPoint>
                 ))}
               </KeyPoints>
               <SectionContent style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                <strong>Pain Points:</strong> {prd.targetAudience.painPoints.join(' • ')}
+                <strong>Pain Points:</strong> {Array.isArray(prd.targetAudience?.painPoints) ? prd.targetAudience.painPoints.join(' • ') : ''}
               </SectionContent>
             </Section>
 
             <Section>
               <SectionTitle>Features</SectionTitle>
-              {prd.features.core.map((feature, idx) => (
+              {Array.isArray(prd.features?.core) && prd.features.core.map((feature, idx) => (
                 <FeatureRow key={idx}>
                   <div>
                     <FeatureName>{feature.name}</FeatureName>
                     <FeatureDesc>{feature.description}</FeatureDesc>
                   </div>
                   <PriorityBadge $priority={feature.priority}>
-                    {feature.priority.replace(/-/g, ' ')}
+                    {feature.priority?.replace(/-/g, ' ')}
                   </PriorityBadge>
                 </FeatureRow>
               ))}
-              {prd.features.future.length > 0 && (
+              {Array.isArray(prd.features?.future) && prd.features.future.length > 0 && (
                 <SectionContent style={{ marginTop: '0.75rem', fontSize: '0.85rem' }}>
                   <strong>Future:</strong> {prd.features.future.join(' • ')}
                 </SectionContent>
@@ -564,7 +564,7 @@ const PRDPage: React.FC = () => {
             <Section>
               <SectionTitle>Technical Requirements</SectionTitle>
               <FeatureList>
-                {prd.technicalRequirements.map((req, idx) => (
+                {Array.isArray(prd.technicalRequirements) && prd.technicalRequirements.map((req, idx) => (
                   <FeatureItem key={idx}>{req}</FeatureItem>
                 ))}
               </FeatureList>
@@ -573,7 +573,7 @@ const PRDPage: React.FC = () => {
             <Section>
               <SectionTitle>Success Metrics</SectionTitle>
               <FeatureList>
-                {prd.successMetrics.map((metric, idx) => (
+                {Array.isArray(prd.successMetrics) && prd.successMetrics.map((metric, idx) => (
                   <FeatureItem key={idx}>{metric}</FeatureItem>
                 ))}
               </FeatureList>
@@ -582,7 +582,7 @@ const PRDPage: React.FC = () => {
             <Section>
               <SectionTitle>Timeline</SectionTitle>
               <TimelineContainer>
-                {prd.timeline.map((item, idx) => (
+                {Array.isArray(prd.timeline) && prd.timeline.map((item, idx) => (
                   <TimelineItem key={idx}>
                     <TimelinePhase>{item.phase}</TimelinePhase>
                     <TimelineDesc>{item.description}</TimelineDesc>
@@ -593,7 +593,7 @@ const PRDPage: React.FC = () => {
 
             <Section>
               <SectionTitle>Risks & Challenges</SectionTitle>
-              {prd.risks.map((risk, idx) => (
+              {Array.isArray(prd.risks) && prd.risks.map((risk, idx) => (
                 <RiskItem key={idx}>{risk}</RiskItem>
               ))}
             </Section>

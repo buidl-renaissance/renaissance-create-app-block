@@ -14,3 +14,7 @@ export { RegistryDetail } from './RegistryDetail';
 export { ProviderSettings } from './ProviderSettings';
 export { BlockInstaller } from './BlockInstaller';
 export { BlockInstallations } from './BlockInstallations';
+
+// Ren.AI integration components
+export { RenAISettings } from './RenAISettings';
+export { WorkflowActions } from './WorkflowActions';

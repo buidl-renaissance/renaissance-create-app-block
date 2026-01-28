@@ -1,13 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import sharp from 'sharp';
 import {
   createBlockSubmission,
   getAllBlockSubmissions,
   hasExistingSubmission,
 } from '@/db/blockSubmission';
 import type { BlockSubmission } from '@/db/schema';
-
-const REQUIRED_ICON_SIZE = 512;
 
 type ResponseData = {
   success?: boolean;
@@ -47,19 +44,17 @@ function isValidUrl(url: string): boolean {
 }
 
 /**
- * Validate icon image dimensions (must be 512x512 square)
+ * Validate icon URL points to an image
  */
-async function validateIconDimensions(iconUrl: string): Promise<{ valid: boolean; error?: string }> {
+async function validateIconUrl(iconUrl: string): Promise<{ valid: boolean; error?: string }> {
   try {
-    // Fetch the image with timeout
+    // Fetch the image with timeout (HEAD request to check content-type)
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
     const response = await fetch(iconUrl, { 
+      method: 'HEAD',
       signal: controller.signal,
-      headers: {
-        'Accept': 'image/*',
-      },
     });
     clearTimeout(timeout);
     
@@ -70,27 +65,6 @@ async function validateIconDimensions(iconUrl: string): Promise<{ valid: boolean
     const contentType = response.headers.get('content-type');
     if (!contentType || !contentType.startsWith('image/')) {
       return { valid: false, error: 'Icon URL must point to an image file' };
-    }
-    
-    const buffer = Buffer.from(await response.arrayBuffer());
-    const metadata = await sharp(buffer).metadata();
-    
-    if (!metadata.width || !metadata.height) {
-      return { valid: false, error: 'Unable to determine icon dimensions' };
-    }
-    
-    if (metadata.width !== metadata.height) {
-      return { 
-        valid: false, 
-        error: `Icon must be square. Got ${metadata.width}x${metadata.height}` 
-      };
-    }
-    
-    if (metadata.width !== REQUIRED_ICON_SIZE) {
-      return { 
-        valid: false, 
-        error: `Icon must be ${REQUIRED_ICON_SIZE}x${REQUIRED_ICON_SIZE} pixels. Got ${metadata.width}x${metadata.height}` 
-      };
     }
     
     return { valid: true };
@@ -189,8 +163,8 @@ export default async function handler(
             return res.status(400).json({ error: 'Please provide a valid icon URL' });
           }
           
-          // Validate icon dimensions (must be 512x512)
-          const iconValidation = await validateIconDimensions(iconUrl.trim());
+          // Validate icon URL points to an image
+          const iconValidation = await validateIconUrl(iconUrl.trim());
           if (!iconValidation.valid) {
             return res.status(400).json({ error: iconValidation.error });
           }

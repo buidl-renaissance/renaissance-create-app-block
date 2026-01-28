@@ -17,6 +17,16 @@ type ResponseData = {
 };
 
 /**
+ * Set CORS headers to allow cross-origin requests
+ */
+function setCorsHeaders(res: NextApiResponse) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Max-Age', '86400');
+}
+
+/**
  * Validate email format
  */
 function isValidEmail(email: string): boolean {
@@ -96,11 +106,20 @@ async function validateIconDimensions(iconUrl: string): Promise<{ valid: boolean
 /**
  * POST /api/block-submissions - Submit a new block (public endpoint)
  * GET /api/block-submissions - List all submissions (for admin)
+ * OPTIONS /api/block-submissions - CORS preflight
  */
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<ResponseData>
 ) {
+  // Set CORS headers for all responses
+  setCorsHeaders(res);
+
+  // Handle CORS preflight request
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   try {
     switch (req.method) {
       case 'GET': {

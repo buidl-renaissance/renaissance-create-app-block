@@ -359,14 +359,14 @@ const GetStartedPage: React.FC = () => {
     }
   }, [pendingBlockType, createBlockAndRedirect, refreshUser, fetchAppBlocks]);
 
-  // Show loading while checking if authenticated user should redirect to dashboard
+  // Combine all loading conditions to prevent multiple loading flashes
   const isCreatingNew = router.query.new === 'true';
-  if (isUserLoading || (user && isBlocksLoading)) {
-    return <Loading text="Loading..." />;
-  }
+  const shouldShowLoading = 
+    isUserLoading || 
+    (user && isBlocksLoading) ||
+    (user && appBlocks.length > 0 && !isCreatingNew && !shouldRedirectRef.current);
   
-  // If user has blocks and not creating new, show loading while redirecting
-  if (user && appBlocks.length > 0 && !isCreatingNew && !shouldRedirectRef.current) {
+  if (shouldShowLoading) {
     return <Loading text="Loading..." />;
   }
 

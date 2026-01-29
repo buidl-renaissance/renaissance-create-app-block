@@ -184,7 +184,7 @@ interface AppBlockContextType {
   registryTotal: number;
   
   // Actions
-  fetchAppBlocks: () => Promise<void>;
+  fetchAppBlocks: (showLoading?: boolean) => Promise<void>;
   fetchAppBlock: (id: string) => Promise<AppBlockWithInstallations | null>;
   createAppBlock: (data: { name: string; description?: string; iconUrl?: string }) => Promise<AppBlock | null>;
   updateAppBlock: (id: string, data: { name?: string; description?: string; iconUrl?: string }) => Promise<AppBlock | null>;
@@ -284,6 +284,7 @@ export const AppBlockProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   
   const [connectors, setConnectors] = useState<ConnectorWithDetails[]>([]);
   const [connectorsLoading, setConnectorsLoading] = useState(false);
+  const hasFetchedRef = useRef(false);
   
   // Registry state
   const [registryEntries, setRegistryEntries] = useState<RegistryEntry[]>([]);
@@ -314,10 +315,14 @@ export const AppBlockProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, []);
 
   // Fetch all app blocks for current user
-  const fetchAppBlocks = useCallback(async () => {
+  const fetchAppBlocks = useCallback(async (showLoading = false) => {
     if (!userRef.current) return;
     
-    setIsLoading(true);
+    // Only set loading true on initial fetch or when explicitly requested
+    // This prevents loading flash on refetches
+    if (showLoading) {
+      setIsLoading(true);
+    }
     setError(null);
     
     try {
@@ -936,14 +941,19 @@ export const AppBlockProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (isUserLoading) return; // Wait for user context to finish loading
     
     if (user) {
-      fetchAppBlocks().finally(() => {
+      // Show loading only on initial fetch (when hasFetchedRef is false)
+      const showLoading = !hasFetchedRef.current;
+      fetchAppBlocks(showLoading).finally(() => {
+        hasFetchedRef.current = true;
         setHasFetchedOnce(true);
       });
     } else {
+      // User logged out - reset state
       setAppBlocks([]);
       setCurrentAppBlock(null);
       setIsLoading(false);
-      setHasFetchedOnce(true);
+      hasFetchedRef.current = false;
+      setHasFetchedOnce(false);
     }
   }, [user, isUserLoading, fetchAppBlocks]);
 

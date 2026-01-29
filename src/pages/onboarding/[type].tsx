@@ -810,12 +810,15 @@ const OnboardingPage: React.FC = () => {
     }
   }, [type, router]);
 
-  if (isUserLoading || !config) {
+  // Combine loading conditions to prevent flash
+  // Wait for user loading AND router to be ready (for config)
+  if (isUserLoading || !router.isReady || !config) {
     return <Loading text="Loading..." />;
   }
 
+  // User must be authenticated - redirect handled in useEffect
   if (!user) {
-    return null;
+    return <Loading text="Redirecting..." />;
   }
 
   const questions = config.questions;

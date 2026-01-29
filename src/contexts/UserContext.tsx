@@ -236,7 +236,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     const fetchUser = async () => {
       try {
-        setIsLoading(true);
+        // isLoading already starts as true, no need to set again
         setError(null);
         
         console.log('🔍 Starting user fetch...');
